@@ -6,7 +6,7 @@ rust-version = "1.90"
 description = "Mail inbox in your tray: new mails and login codes at a glance – by be-spex"
 authors = ["Bert Speckels <skrrytch@speckels.net>"]
 license = "MIT"
-repository = "https://github.com/be-spex/Maillet"
+repository = "https://github.com/bespex/Maillet"
 keywords = ["mail", "imap", "tray", "tauri", "otp"]
 categories = ["email", "authentication", "gui"]
 

@@ -8,7 +8,7 @@ the moment they arrive.
 
 Maillet does not replace your mail program yet: it reads, sorts and manages, but does not write mails.
 
-**Website:** https://be-spex.github.io/maillet/ · part of [be spex](https://be-spex.github.io) – small, focused apps for Linux
+**Website:** https://bespex.github.io/maillet/ · part of [be spex](https://bespex.github.io) – small, focused apps for Linux
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/maillet-home-dark.png">
@@ -22,7 +22,7 @@ Maillet does not replace your mail program yet: it reads, sorts and manages, but
 Once, add the be spex repository:
 
 ```sh
-curl -fsSLO https://be-spex.github.io/packages/be-spex-archive-keyring.deb
+curl -fsSLO https://bespex.github.io/packages/be-spex-archive-keyring.deb
 sudo apt install ./be-spex-archive-keyring.deb && sudo apt update
 ```
 
@@ -36,7 +36,7 @@ Updates arrive with `sudo apt upgrade`.
 
 ### AppImage
 
-Download `Maillet_*_amd64.AppImage` from the [latest release](https://github.com/be-spex/Maillet/releases/latest),
+Download `Maillet_*_amd64.AppImage` from the [latest release](https://github.com/bespex/Maillet/releases/latest),
 make it executable (`chmod +x Maillet_*_amd64.AppImage`) and start it.
 
 Maillet updates itself: it checks for a newer version and offers to replace the AppImage in place. That
