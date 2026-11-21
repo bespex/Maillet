@@ -259,12 +259,55 @@ pub async fn off_thread<T: Send + 'static>(f: impl FnOnce() -> Result<T> + Send 
     }
 }
 
-fn load_password(account_id: &str) -> Result<String> {
-    if let Some(pass) = cached(account_id) {
-        return Ok(pass);
+/// Whether the keyring is locked. Reading a secret from a locked keyring makes
+/// the secret service ask for its password, so Maillet does not read then: it
+/// waits until the login or the screen unlock opens the keyring again.
+#[cfg(target_os = "linux")]
+pub fn keyring_locked() -> bool {
+    use dbus_secret_service::{EncryptionType, SecretService};
+    let locked = || SecretService::connect(EncryptionType::Plain)?.get_default_collection()?.is_locked();
+    locked().unwrap_or(false)
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn keyring_locked() -> bool {
+    false
+}
+
+/// Accounts whose secret could not be read, with the time of the attempt:
+/// asked again only after [`RETRY_AFTER`], so a missing entry or a keyring
+/// that does not answer does not cost a slow call on every mail action.
+static FAILED: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, std::time::Instant>>> = std::sync::LazyLock::new(Default::default);
+const RETRY_AFTER: std::time::Duration = std::time::Duration::from_secs(60);
+
+/// Reads a secret without ever making the keyring ask for its password.
+/// `Ok(None)`: no such entry.
+fn read_secret(key: &str) -> Result<Option<String>> {
+    if let Some(secret) = cached(key) {
+        return Ok(Some(secret));
     }
-    if let Ok(pass) = keyring_entry(account_id)?.get_password() {
-        remember(account_id, &pass);
+    if FAILED.lock().unwrap().get(key).is_some_and(|t| t.elapsed() < RETRY_AFTER) {
+        anyhow::bail!("The keyring did not answer – trying again shortly");
+    }
+    if keyring_locked() {
+        anyhow::bail!("The keyring is locked – unlock it (e.g. by unlocking the screen)");
+    }
+    match keyring_entry(key)?.get_password() {
+        Ok(secret) => {
+            FAILED.lock().unwrap().remove(key);
+            remember(key, &secret);
+            Ok(Some(secret))
+        }
+        Err(keyring::Error::NoEntry) => Ok(None),
+        Err(e) => {
+            FAILED.lock().unwrap().insert(key.to_string(), std::time::Instant::now());
+            Err(e).context("Failed to read from keyring")
+        }
+    }
+}
+
+fn load_password(account_id: &str) -> Result<String> {
+    if let Some(pass) = read_secret(account_id)? {
         return Ok(pass);
     }
     // Copy from the legacy service; the old entry is kept as a fallback.
@@ -281,6 +324,7 @@ fn store_password(account_id: &str, password: &str) -> Result<()> {
         .set_password(password)
         .context("Failed to store password in keyring")?;
     remember(account_id, password);
+    FAILED.lock().unwrap().remove(account_id);
     Ok(())
 }
 
@@ -538,13 +582,11 @@ pub fn api_token() -> Result<String> {
     if let Some(token) = cached(API_TOKEN_KEY) {
         return Ok(token);
     }
-    let entry = keyring_entry(API_TOKEN_KEY)?;
-    match entry.get_password() {
-        Ok(token) => {
-            remember(API_TOKEN_KEY, &token);
-            Ok(token)
-        }
-        Err(_) => regenerate_api_token(),
+    // Only a missing token is created anew; a locked keyring must not replace
+    // the token that scripts use.
+    match read_secret(API_TOKEN_KEY)? {
+        Some(token) => Ok(token),
+        None => regenerate_api_token(),
     }
 }
 

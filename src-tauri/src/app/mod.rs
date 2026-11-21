@@ -885,6 +885,29 @@ async fn spawn_watchers(app: &AppHandle, accounts: Vec<AccountConfig>) {
     }
 }
 
+/// A keyring locked at start (e.g. after the secret service restarted) is not
+/// asked for its password – that would pop up a dialog out of nowhere. The
+/// watchers and the API start once the login or the screen unlock opens it.
+async fn wait_for_keyring(app: AppHandle) {
+    let locked = || config::off_thread(|| Ok(config::keyring_locked()));
+    if !locked().await.unwrap_or(false) {
+        return;
+    }
+    let accounts = app.state::<AppState>().config.lock().await.accounts.clone();
+    for account in &accounts {
+        status::set(&app, &account.id, "connecting", "Waiting for the keyring to be unlocked …");
+    }
+    tracing::info!("Keyring is locked – waiting for it to be unlocked");
+    while locked().await.unwrap_or(false) {
+        tokio::time::sleep(Duration::from_secs(10)).await;
+    }
+    tracing::info!("Keyring unlocked – starting the watchers");
+    if let Ok(accounts) = config::accounts_with_passwords().await {
+        spawn_watchers(&app, accounts).await;
+    }
+    api::restart(app).await;
+}
+
 /// Runs the watcher forever, reconnecting with exponential backoff.
 /// A manual check skips the remaining wait. Notifies only on the first
 /// failure of a streak to avoid notification spam.
@@ -1098,6 +1121,7 @@ pub fn run() {
                 spawn_task_listener(handle.clone(), tray.clone());
                 spawn_store_listener(handle.clone(), tray);
                 spawn_watchers(&handle, accounts).await;
+                wait_for_keyring(handle).await;
             });
             Ok(())
         })

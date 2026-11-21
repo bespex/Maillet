@@ -42,6 +42,8 @@ notify-rust = "4"
 async-trait = "0.1"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+# Checking whether the keyring is locked (the backend of `keyring`), see base/config.rs
+dbus-secret-service = "4"
 # Activating the popup window on X11 (focus-stealing prevention), see app/windows.rs
 gtk = "0.18"
 gdkx11 = "0.18"

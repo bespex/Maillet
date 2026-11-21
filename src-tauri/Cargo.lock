@@ -2502,6 +2502,7 @@ dependencies = [
  "async-trait",
  "axum",
  "base64 0.22.1",
+ "dbus-secret-service",
  "dirs",
  "futures-util",
  "gdkx11",

@@ -80,11 +80,12 @@ The account card shows the last status, e.g. *Connected – watching INBOX* or a
 | Login failed for … | Wrong password, or the provider requires an [app password](#common-providers). For GMX and WEB.DE, check that IMAP access is enabled. |
 | Login OK, but mailbox '…' not found / Failed to select mailbox | The folder name under **Mailbox** doesn't exist. Some providers treat folder names as case-sensitive. |
 | No password stored – edit the account and enter it | The keyring holds no password for this account, e.g. after moving to a new computer. Edit the account and enter the password again. |
+| Waiting for the keyring to be unlocked … | The keyring was locked when Maillet started, e.g. because the secret service restarted. Maillet doesn't ask for the keyring password itself; it starts as soon as the keyring is unlocked, usually by unlocking the screen. |
 | TLS handshake failed | Check server and port. For the Proton Mail Bridge, turn on *Accept self-signed certificate*. |
 | STARTTLS failed – try SSL/TLS instead | The server expects implicit TLS. Switch the encryption to *SSL/TLS* and the port to 993. |
 | Failed to connect / Timeout connecting | Wrong server or port, or a firewall. For the Proton Mail Bridge: is the Bridge running? |
 | Server did not respond – connection lost | The connection dropped, e.g. after sleep or a network change. Maillet reconnects on its own. |
 
-**Passwords need a keyring.** Maillet stores passwords via the Secret Service, provided by GNOME Keyring or KWallet. Most desktops run one. On minimal setups, install `gnome-keyring`.
+**Passwords need a keyring.** Maillet stores passwords via the Secret Service, provided by GNOME Keyring or KWallet. Most desktops run one. On minimal setups, install `gnome-keyring`. Maillet reads the passwords once per start and never asks for the keyring password: while the keyring is locked, it waits.
 
 **More detail:** the *Log* tab, switched to *Technical*, lists connects, wake-ups and errors per account. For timing details, start Maillet from a terminal with `RUST_LOG=maillet=debug maillet`.
