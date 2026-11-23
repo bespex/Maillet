@@ -22,8 +22,8 @@
     "license": "MIT",
     "homepage": "https://github.com/bespex/Maillet",
     "category": "Utility",
-    "shortDescription": "Mail inbox in your tray: new mails and login codes at a glance – by be-spex",
-    "longDescription": "Maillet puts your IMAP inboxes into the tray: new mails show up in the tray and in a compact window, and one-time passwords and magic login links can be copied or opened with one click - without opening your mail client.",
+    "shortDescription": "Mail in your tray: a quick look, a clear decision – be spex",
+    "longDescription": "Maillet is a mail client that lives in the system tray and organises mail\naround what you do with it: see what is new at a glance, turn a mail into a\ntask and keep track of where it stands. One-time passwords and login links\nshow up the moment they arrive and are copied or opened with one click.\n\nMaillet reads, sorts and manages your IMAP mail; it does not write mails yet.\n\nPart of be spex – apps for the way you work: https://bespex.github.io",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
