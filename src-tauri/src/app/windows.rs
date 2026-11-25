@@ -50,7 +50,9 @@ pub fn create(app: &tauri::App) -> tauri::Result<()> {
         WindowEvent::Focused(false) => {
             let state = handle.state::<MainWindowState>();
             let just_shown = state.shown_at.lock().unwrap().is_some_and(|t| t.elapsed() < Duration::from_millis(400));
-            if *state.form.lock().unwrap() == Form::Popup && !just_shown {
+            // Open settings keep the popup open, so their changes show there at once
+            let settings_open = handle.get_webview_window("settings").is_some_and(|w| w.is_visible().unwrap_or(false));
+            if *state.form.lock().unwrap() == Form::Popup && !just_shown && !settings_open {
                 *state.hidden_on_blur.lock().unwrap() = Some(Instant::now());
                 if let Some(w) = handle.get_webview_window(MAIN) {
                     let _ = w.hide();
@@ -71,7 +73,15 @@ pub fn create(app: &tauri::App) -> tauri::Result<()> {
         .inner_size(820.0, 760.0)
         .visible(false)
         .build()?;
-    hide_on_close(&settings);
+    let app_handle = app.handle().clone();
+    let w = settings.clone();
+    settings.on_window_event(move |event| {
+        if let WindowEvent::CloseRequested { api, .. } = event {
+            api.prevent_close();
+            let _ = w.hide();
+            refocus_main(&app_handle);
+        }
+    });
 
     let about = WebviewWindowBuilder::new(app, "about", WebviewUrl::App("about.html".into()))
         .title(crate::base::i18n::t("win.about", &[]))
@@ -91,6 +101,17 @@ pub fn create(app: &tauri::App) -> tauri::Result<()> {
         .visible(false)
         .build()?;
     Ok(())
+}
+
+/// The settings closed: if the main window is still open, it gets the focus back, so the next click
+/// elsewhere or Esc hides the popup as usual.
+fn refocus_main(app: &AppHandle) {
+    let Some(w) = app.get_webview_window(MAIN) else { return };
+    if w.is_visible().unwrap_or(false) {
+        *app.state::<MainWindowState>().shown_at.lock().unwrap() = Some(Instant::now());
+        let _ = w.set_focus();
+        activate_x11(&w);
+    }
 }
 
 fn hide_on_close(window: &WebviewWindow) {

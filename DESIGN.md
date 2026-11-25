@@ -213,8 +213,9 @@ Eine Benachrichtigung hat Schaltflächen: *Öffnen*, *Archivieren*, bei OTP *Kop
 
 ### 5.9 Themes
 Seit 2026-11-25 aus dem gemeinsamen be spex kit (`dist/kit`, geholt mit `tools/update-kit.sh <tag>`): Farbthema
-und Stil, getrennt wählbar, dieselbe Auswahl wie in jeder be spex-App. Gewählt in den Einstellungen unter
-*General → Appearance*, gespeichert als `appearance` in `config.json`, alle Fenster folgen sofort
+und Stil, getrennt wählbar, dieselbe Auswahl wie in jeder be spex-App. Gewählt in den Einstellungen im Reiter
+*Theme*; solange das Einstellungsfenster offen ist, bleibt das Hauptfenster offen (die Wahl ist dort sofort
+zu sehen), beim Schließen bekommt es den Fokus zurück; gespeichert als `appearance` in `config.json`, alle Fenster folgen sofort
 (`dist/look.js`). Ohne Wahl folgt Maillet Hell/Dunkel des Systems (`auto`). Maillet bietet die Stilachsen
 Form, Gliederung und Leisten an. Der Mond-Knopf ist entfallen; eine frühere Wahl hell/dunkel wird einmal
 übernommen (Papier/Graphit). Offen: Akzent der App (Petrol wie das Tray-Symbol), Akzentfarbe aus dem
