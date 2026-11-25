@@ -487,6 +487,27 @@ async fn set_language(app: AppHandle, code: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Colour theme and style of the windows as stored (`null` until chosen).
+#[tauri::command]
+async fn get_appearance(app: AppHandle) -> serde_json::Value {
+    let shared = app.state::<AppState>().config.clone();
+    let cfg = shared.lock().await;
+    cfg.appearance.clone().unwrap_or(serde_json::Value::Null)
+}
+
+/// Stores colour theme and style as the settings window hands them over (the kit checks them there);
+/// every window puts them on at once.
+#[tauri::command]
+async fn set_appearance(app: AppHandle, appearance: serde_json::Value) -> Result<(), String> {
+    if !appearance.is_object() {
+        return Err("appearance must be an object".into());
+    }
+    let shared = app.state::<AppState>().config.clone();
+    async_runtime::spawn_blocking(move || config::set_appearance(&shared, appearance)).await.map_err(|e| e.to_string())?.map_err(err)?;
+    let _ = app.emit("settings-changed", ());
+    Ok(())
+}
+
 /// Sets the global shortcut; it takes effect at once. Returns the new status.
 #[tauri::command]
 async fn set_shortcut(app: AppHandle, keys: String) -> Result<shortcut::Status, String> {
@@ -1087,7 +1108,7 @@ pub fn run() {
         .manage(windows::MainWindowState::default())
         .manage(attachments::AttachmentCache::default())
         .invoke_handler(tauri::generate_handler![
-            list_mails, get_app_status, get_mail, set_seen, archive_mail, delete_mail, check_now, open_window, hide_main, set_notifications, set_tray_people_only, set_sender_kind, archive_mails, unarchive_mails, set_shortcut, get_i18n, set_language, set_pinned, make_task, list_tasks, list_inbox, set_inbox_days, move_task, file_mail, unfile_mail, set_categories, list_folders, list_account_folders, get_folder_mail, set_mark_read_on_open, trash_mail, set_actions, get_task_mail,
+            list_mails, get_app_status, get_mail, set_seen, archive_mail, delete_mail, check_now, open_window, hide_main, set_notifications, set_tray_people_only, set_sender_kind, archive_mails, unarchive_mails, set_shortcut, get_i18n, set_language, get_appearance, set_appearance, set_pinned, make_task, list_tasks, list_inbox, set_inbox_days, move_task, file_mail, unfile_mail, set_categories, list_folders, list_account_folders, get_folder_mail, set_mark_read_on_open, trash_mail, set_actions, get_task_mail,
             get_accounts, add_account, update_account, remove_account, graph_sign_in_start, graph_sign_in_finish, graph_sign_in_cancel, rename_tag, test_connection, restart_imap,
             get_status, get_log, clear_log,
             get_rules, save_rule, delete_rule, move_rule, export_rules, preview_import, apply_import, test_rule,

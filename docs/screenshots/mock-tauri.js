@@ -67,6 +67,8 @@
     test_rule: testRule,
     save_rule: ({ rule: r }) => rules,
     get_last_code: () => null,
+    // ?theme=fjord&style=stage tries a colour theme and style; without, the windows follow light/dark of the system
+    get_appearance: () => { const q = new URLSearchParams(location.search); return q.get('theme') ? { theme: q.get('theme'), style: q.get('style') || 'calm' } : null },
   }
 
   async function invoke(cmd, args = {}) {

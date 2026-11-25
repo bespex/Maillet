@@ -212,7 +212,13 @@ IMAP kennt kein Snooze. Maillet speichert den Zeitpunkt lokal und zeigt die Mail
 Eine Benachrichtigung hat Schaltflächen: *Öffnen*, *Archivieren*, bei OTP *Kopieren*. Der Nutzer erledigt Dinge, ohne das Popup zu öffnen.
 
 ### 5.9 Themes
-Hell, dunkel, folgt dem System. Akzentfarbe aus dem Desktop-Theme, wenn verfügbar (KDE und GNOME stellen sie bereit).
+Seit 2026-11-25 aus dem gemeinsamen be spex kit (`dist/kit`, geholt mit `tools/update-kit.sh <tag>`): Farbthema
+und Stil, getrennt wählbar, dieselbe Auswahl wie in jeder be spex-App. Gewählt in den Einstellungen unter
+*General → Appearance*, gespeichert als `appearance` in `config.json`, alle Fenster folgen sofort
+(`dist/look.js`). Ohne Wahl folgt Maillet Hell/Dunkel des Systems (`auto`). Maillet bietet die Stilachsen
+Form, Gliederung und Leisten an. Der Mond-Knopf ist entfallen; eine frühere Wahl hell/dunkel wird einmal
+übernommen (Papier/Graphit). Offen: Akzent der App (Petrol wie das Tray-Symbol), Akzentfarbe aus dem
+Desktop-Theme.
 
 ---
 
