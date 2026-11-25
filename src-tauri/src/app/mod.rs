@@ -93,11 +93,8 @@ async fn get_mail(state: State<'_, AppState>, cache: State<'_, attachments::Atta
 async fn set_seen(state: State<'_, AppState>, id: String, seen: bool) -> Result<(), String> {
     let (account, uid) = locate(&state, &id).await?;
     state.commands.set_seen(&account, uid, seen).await.map_err(err)?;
-    if seen {
-        state.store.remove(&account.id, uid);
-    } else {
-        state.check_now.notify_waiters();
-    }
+    // Read or not, the mail stays in the inbox and in the list until it leaves.
+    state.store.set_seen(&account.id, uid, seen);
     Ok(())
 }
 
@@ -237,11 +234,13 @@ async fn list_folders(state: State<'_, AppState>) -> Result<Vec<String>, String>
 
 /// Moves a mail to the trash (by its window id).
 #[tauri::command]
-async fn trash_mail(state: State<'_, AppState>, id: String) -> Result<(), String> {
+async fn trash_mail(state: State<'_, AppState>, id: String) -> Result<Archived, String> {
+    let message_id = state.store.find(&id).and_then(|m| m.message_id);
     let (account, uid) = locate(&state, &id).await?;
-    state.commands.delete(&account, uid).await.map_err(err)?;
+    let folder = state.commands.delete(&account, uid).await.map_err(err)?;
     state.store.remove(&account.id, uid);
-    Ok(())
+    // Undone like an archived mail: found in the trash by its Message-ID.
+    Ok(Archived { account_id: account.id, folder, message_id })
 }
 
 #[tauri::command]

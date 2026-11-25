@@ -159,4 +159,6 @@ Englische Buchstaben, weil die Oberfläche englisch ist. Sie wirken auf die geö
 | 4 | Einstellungsseite „Actions“ mit Live-Vorschau und Kategorie-Editor |
 | 5 | Ziehen, Vorschläge, Kategorie-Ansicht |
 
+**Durchgangsstation als Modell (2026-11-25):** Maillet folgt der ersten Arbeitsweise aus Abschnitt 1. Die Startseite zeigt den ganzen Eingang, gelesen oder nicht; „Gelesen“ ist nicht mehr voreingestellt, bleibt aber wählbar. Eine Wahl „Lager“ gibt es bewusst nicht.
+
 **Stand:** Schritte 1–4 sind umgesetzt. Abweichungen: kein Direktknopf für die zuletzt benutzte Kategorie (auf Wunsch weggelassen); Done fest in der Ecke, die Liste in den Einstellungen liest sich oben nach unten = links nach rechts; Umsortieren mit ↑/↓ statt Ziehen; Kategorien haben eine Farbe, aber noch kein Symbol.

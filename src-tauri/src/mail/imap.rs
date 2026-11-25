@@ -206,12 +206,16 @@ async fn sync(session: &mut Session, w: &Watch, uid_validity: u32) -> Result<()>
     let started = Instant::now();
     let origin = |uid| Origin { account_id: &account.id, account: &account.label, uid_validity, uid };
 
-    let mut unseen: Vec<u32> = with_timeout(session.uid_search("UNSEEN")).await.context("SEARCH UNSEEN failed")?.into_iter().collect();
-    unseen.sort_unstable();
+    // Everything in the inbox is listed until it leaves it; read or not only changes the look.
+    let mut inbox: Vec<u32> = with_timeout(session.uid_search("NOT DELETED")).await.context("SEARCH failed")?.into_iter().collect();
+    inbox.sort_unstable();
+    let inbox_total = inbox.len();
+    let shown: Vec<u32> = inbox.iter().rev().take(LIST_LIMIT).copied().collect();
+    let unseen: HashSet<u32> = with_timeout(session.uid_search("UNSEEN NOT DELETED")).await.context("SEARCH UNSEEN failed")?.into_iter().collect();
     let total = unseen.len();
-    let shown: Vec<u32> = unseen.iter().rev().take(LIST_LIMIT).copied().collect();
-    let mut flagged: Vec<u32> = with_timeout(session.uid_search("FLAGGED")).await.context("SEARCH FLAGGED failed")?.into_iter().collect();
+    let mut flagged: Vec<u32> = with_timeout(session.uid_search("FLAGGED NOT DELETED")).await.context("SEARCH FLAGGED failed")?.into_iter().collect();
     flagged.sort_unstable();
+    let flagged_set: HashSet<u32> = flagged.iter().copied().collect();
     let pinned: Vec<u32> = flagged.iter().rev().take(PIN_LIMIT).copied().collect();
 
     // New since the last check, read or not: another client may already
@@ -242,12 +246,19 @@ async fn sync(session: &mut Session, w: &Watch, uid_validity: u32) -> Result<()>
         w.last_uid.store(*uid, Ordering::Relaxed);
     }
 
-    let pick = |uid: &u32| known.get(uid).or_else(|| fetched.get(uid)).cloned();
+    // Known mails keep their findings, but read and pinned may have changed elsewhere.
+    let pick = |uid: &u32| {
+        known.get(uid).or_else(|| fetched.get(uid)).cloned().map(|mut m| {
+            m.seen = !unseen.contains(uid);
+            m.flagged = flagged_set.contains(uid);
+            m
+        })
+    };
     let mails: Vec<MailSummary> = shown.iter().filter_map(pick).collect();
     let pinned_mails: Vec<MailSummary> = pinned.iter().filter_map(pick).collect();
-    w.store.set_account(&account.id, &account.label, total, mails, pinned_mails);
+    w.store.set_account(&account.id, &account.label, total, inbox_total, mails, pinned_mails);
 
-    let message = format!("Connected – {total} unread");
+    let message = format!("Connected – {inbox_total} in the inbox, {total} unread");
     status::set(&w.app, &account.id, "ok", message);
     if !fresh.is_empty() {
         let message = format!("Mailbox checked – {} new after {} ms", fresh.len(), started.elapsed().as_millis());
@@ -481,8 +492,9 @@ impl Commands {
         self.run(account, Unarchive { folder: folder.to_string(), message_ids: message_ids.to_vec(), mailbox: account.mailbox.clone() }).await
     }
 
-    /// Moves the mail to the trash, or flags and expunges it if there is none.
-    pub async fn delete(&self, account: &AccountConfig, uid: u32) -> Result<()> {
+    /// Moves the mail to the trash (created as `Trash` if the server has none). Returns the folder,
+    /// so the move can be undone.
+    pub async fn delete(&self, account: &AccountConfig, uid: u32) -> Result<String> {
         if account.is_graph() {
             return super::graph::shared().delete(account, uid).await;
         }
@@ -843,20 +855,20 @@ impl AsyncOp<usize> for Unarchive {
 }
 
 struct Delete(u32, String);
-impl AsyncOp<()> for Delete {
-    async fn call(&self, s: &mut Session) -> Result<()> {
-        match find_folder(s, &[NameAttribute::Trash], &[], &self.1).await? {
-            Some(trash) => {
-                // Deleted mails count as dealt with: read.
-                SetSeen(self.0, true).call(s).await?;
-                move_to(s, self.0, &trash).await
-            }
+impl AsyncOp<String> for Delete {
+    async fn call(&self, s: &mut Session) -> Result<String> {
+        // Never expunge: without a trash folder one is created, so deleting can be undone.
+        let trash = match find_folder(s, &[NameAttribute::Trash], &["trash", "papierkorb", "deleted items", "deleted messages"], &self.1).await? {
+            Some(trash) => trash,
             None => {
-                let _: Vec<_> = with_timeout(s.uid_store(self.0.to_string(), "+FLAGS.SILENT (\\Deleted)")).await?.try_collect().await?;
-                let _: Vec<_> = with_timeout(s.uid_expunge(self.0.to_string())).await?.try_collect().await?;
-                Ok(())
+                ensure_folder(s, "Trash").await?;
+                "Trash".to_string()
             }
-        }
+        };
+        // Deleted mails count as dealt with: read.
+        SetSeen(self.0, true).call(s).await?;
+        move_to(s, self.0, &trash).await?;
+        Ok(trash)
     }
 }
 
@@ -934,12 +946,17 @@ mod tests {
         cmds.set_seen(&account, *jana_back.iter().next().unwrap(), true).await.unwrap();
 
         let tom = summaries.values().find(|m| m.subject == "Mittag heute?").unwrap();
-        cmds.delete(&account, tom.uid).await.unwrap();
+        assert_eq!(cmds.delete(&account, tom.uid).await.unwrap(), "Trash");
         s.noop().await.unwrap();
         assert!(!s.uid_search("ALL").await.unwrap().contains(&tom.uid));
         s.select("Trash").await.unwrap();
         assert_eq!(s.uid_search("ALL").await.unwrap().len(), 1);
         assert!(s.uid_search("UNSEEN").await.unwrap().is_empty(), "deleted mails are read");
+        // Deleting can be undone like archiving.
+        let tom_mid = tom.message_id.clone().expect("seed mail has a Message-ID");
+        assert_eq!(cmds.unarchive(&account, "Trash", &[tom_mid]).await.unwrap(), 1);
+        s.noop().await.unwrap();
+        assert!(s.uid_search("ALL").await.unwrap().is_empty());
         s.logout().await.ok();
     }
 

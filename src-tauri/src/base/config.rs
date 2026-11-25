@@ -484,7 +484,9 @@ pub fn set_inbox_days(config: &SharedConfig, days: u32) -> Result<()> {
 /// archive, task, file, delete. Marks (it stays): pin, read, noise.
 pub const ALL_ACTIONS: [&str; 7] = ["archive", "task", "file", "delete", "pin", "read", "noise"];
 /// Offered when nothing is configured: all but delete.
-pub const DEFAULT_ACTIONS: [&str; 6] = ["archive", "task", "file", "pin", "read", "noise"];
+/// No "read" by default: the inbox is a transit station, a mail leaves it instead of being
+/// marked read ("read" can still be switched on in the settings).
+pub const DEFAULT_ACTIONS: [&str; 5] = ["archive", "task", "file", "pin", "noise"];
 
 /// Keeps the user's order, drops unknown names and duplicates.
 pub fn set_actions(config: &SharedConfig, actions: Vec<String>) -> Result<()> {

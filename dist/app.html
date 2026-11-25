@@ -44,7 +44,9 @@ svg.i{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stro
 .inbox-head{display:flex;align-items:flex-start;gap:10px}
 .inbox-head .hero{flex:1;min-width:0}
 .folder-pick{display:flex;align-items:center;gap:6px;margin-top:4px}
-.folder-pick select{max-width:190px;padding:6px 8px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:12.5px}
+.folder-btn{display:inline-flex;align-items:center;gap:6px;max-width:210px;padding:6px 8px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:12.5px;cursor:pointer}
+.folder-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-menu{max-height:60vh;overflow-y:auto}
 .folder-note{font-size:12px;color:var(--muted);margin:-6px 0 10px}
 .nav[hidden]{display:none}
 .i.filled{fill:currentColor}
@@ -132,7 +134,8 @@ h1{font-size:20px;margin:0;letter-spacing:-.02em}
 /* Farbmarkierung als Innenschatten links: folgt der Rundung der Karte. */
 .mcard{--bar:var(--accent);box-shadow:inset 3px 0 0 var(--bar)}
 .mcard.bulk{--bar:var(--faint)}
-.mcard.read{--bar:transparent}
+.mcard.read{--bar:transparent;opacity:.82}
+.mcard.read:hover,.mcard.read:focus-visible{opacity:1}
 .mcard.read .mc-subj{font-weight:500}
 .mcard.read .mc-from b{font-weight:600}
 .tcard{--bar:var(--sc)}
@@ -347,7 +350,8 @@ const CODE_TTL = 120000;
 // Welche Aktionen der Nutzer an Mails sehen will (Einstellungen → Allgemein).
 // Ausgänge (die Mail verlässt den Eingang) stehen waagerecht oben, Markierungen
 // (sie bleibt) senkrecht rechts. Reihenfolge und Auswahl: Einstellungen → Actions.
-const DEFAULT_ACTIONS = ['archive', 'task', 'file', 'pin', 'read', 'noise'];
+// Kein „Gelesen“: Der Eingang ist eine Durchgangsstation, eine Mail verlässt ihn (zuschaltbar in den Einstellungen).
+const DEFAULT_ACTIONS = ['archive', 'task', 'file', 'pin', 'noise'];
 const EXITS = ['archive', 'task', 'file', 'delete'], MARKS = ['pin', 'read', 'noise'];
 const MAX_EXITS = 4, MAX_MARKS = 3;
 const KEYS = { archive: 'E', task: 'T', file: 'F', delete: 'Del', pin: 'P', read: 'U', noise: 'N' };
@@ -413,14 +417,20 @@ function onboarding() {
     <button class="btn primary" data-act="settings">${ic('mail', 'sm')}${t('onb.add')}</button></div>`;
 }
 
+// Die Startseite zeigt alles, was im Eingang liegt, gelesen oder nicht: Eine Mail bleibt, bis sie
+// einen Ausgang bekommt (Erledigt, Aufgabe, Ablegen, Löschen). Gelesene erscheinen gedämpft.
 function home(d, total) {
   const multi = d.accounts.length > 1;
-  const inAccount = d.mails.filter(m => S.filter === 'all' || m.account_id === S.filter);
+  const listed = d.mails.filter(m => S.filter === 'all' || m.account_id === S.filter);
+  // Angepinnte stehen oben unter „Angepinnt“, nicht ein zweites Mal in der Liste.
+  const pinnedIds = new Set((d.pinned || []).map(m => m.id));
+  const inAccount = listed.filter(m => !pinnedIds.has(m.id));
   const people = inAccount.filter(m => !m.bulk), noise = inAccount.filter(m => m.bulk);
-  const shown = d.accounts.reduce((a, x) => a + (S.filter === 'all' || x.account_id === S.filter ? x.unread_total : 0), 0);
+  const inInbox = d.accounts.reduce((a, x) => a + (x.inbox_total || 0), 0);
+  const shown = d.accounts.reduce((a, x) => a + (S.filter === 'all' || x.account_id === S.filter ? (x.inbox_total || 0) : 0), 0);
   const summary = S.loading || (!d.accounts.length && d.status.some(s => s.state === 'connecting'))
     ? t('home.checking')
-    : total ? `${total > 1 ? t('home.summary', { n: total }) : t('home.summary_one')}${noise.length ? t('home.of_noise', { n: noise.length }) : ''}.` : t('home.none');
+    : inInbox ? `${inInbox > 1 ? t('home.summary', { n: inInbox }) : t('home.summary_one')}${noise.length ? t('home.of_noise', { n: noise.length }) : ''}${total ? t('home.of_unread', { n: total }) : ''}.` : t('home.none');
   const gchip = (k, label, n) => `<button class="chip ${S.group === k ? 'on' : ''}" data-act="group" data-g="${k}">${label}${n === undefined ? '' : ` <span class="faint">${n}</span>`}</button>`;
   const noiseHead = noise.length ? `<div class="zone noise-head">${ic('mute', 'sm')}${t('home.noise')}<span class="faint">${noise.length}</span><span class="grow"></span><button class="link" data-act="archiveNoise" title="${t('home.noise_all_tip')}">${t('home.noise_all')}</button></div>` : '';
   let list;
@@ -431,11 +441,11 @@ function home(d, total) {
     <div class="hero"><h1>${greet()}.</h1><p>${summary}</p></div>
     <div id="codes"></div>
     ${(d.pinned || []).length ? `<div class="zone">${ic('star', 'sm')}${t('home.pinned')}<span class="grow"></span><span class="faint">${d.pinned.length}</span></div>${d.pinned.map(pinRow).join('')}` : ''}
-    <div class="zone">${ic('mail', 'sm')}${t('home.new')}<span class="grow"></span>${total ? `<span class="faint">${total}</span>` : ''}</div>
+    <div class="zone">${ic('mail', 'sm')}${t('home.new')}<span class="grow"></span>${inInbox ? `<span class="faint">${inInbox}</span>` : ''}</div>
     <div class="chips">${gchip('all', t('home.all'))}${gchip('people', t('home.people'), people.length)}${gchip('noise', t('home.noise'), noise.length)}</div>
-    ${multi ? `<div class="chips"><button class="chip ${S.filter === 'all' ? 'on' : ''}" data-act="filter" data-f="all">${t('home.all_accounts')}</button>${d.accounts.map(a => `<button class="chip ${S.filter === a.account_id ? 'on' : ''}" data-act="filter" data-f="${esc(a.account_id)}">${esc(a.account)} <span class="faint">${a.unread_total}</span></button>`).join('')}</div>` : ''}
+    ${multi ? `<div class="chips"><button class="chip ${S.filter === 'all' ? 'on' : ''}" data-act="filter" data-f="all">${t('home.all_accounts')}</button>${d.accounts.map(a => `<button class="chip ${S.filter === a.account_id ? 'on' : ''}" data-act="filter" data-f="${esc(a.account_id)}">${esc(a.account)} <span class="faint">${a.inbox_total || 0}</span></button>`).join('')}</div>` : ''}
     ${list}
-    ${shown > inAccount.length ? `<div class="more">${t('home.more', { shown: inAccount.length, total: shown })}</div>` : ''}
+    ${shown > listed.length ? `<div class="more">${t('home.more', { shown: listed.length, total: shown })}</div>` : ''}
     `;
 }
 // Besondere Zustände einer Mail als kleines Abzeichen am Absender-Symbol (rechts unten),
@@ -482,7 +492,7 @@ function inboxView(d) {
   const folder = folderOf(S.inboxAccount);
   const folders = (S.folders[S.inboxAccount] || []).filter(f => !/^inbox$/i.test(f));
   const pick = `<div class="folder-pick">
-      <select data-act-change="folder" title="${t('inbox.folder')}"><option value="">${t('app.inbox')}</option>${folders.map(f => `<option value="${esc(f)}" ${f === folder ? 'selected' : ''}>${esc(f)}</option>`).join('')}${folder && !folders.includes(folder) ? `<option selected>${esc(folder)}</option>` : ''}</select>
+      <button class="folder-btn" data-act="folderMenu" title="${t('inbox.folder')}">${ic('folder', 'sm')}<span>${esc(folder || t('app.inbox'))}</span> ▾</button>
       <button class="ib sm" data-act="inboxHome" title="${t('inbox.back')}" ${folder ? '' : 'disabled'}>${ic('inbox', 'sm')}</button>
     </div>`;
   const title = acc ? acc.account : t('app.inbox');
@@ -818,16 +828,25 @@ function inboxDrop(id) { if (S.inbox) { S.inbox = S.inbox.filter(m => m.id !== i
 function inboxSeen(id, seen) { (S.inbox || []).forEach(m => { if (m.id === id) m.seen = seen; }); if (S.view === 'inbox') render(); }
 async function archive(id) {
   const card = document.querySelector(`.mcard[data-id="${CSS.escape(id)}"]`);
+  const m = findMail(id);
   if (card) card.style.opacity = .4;
   try {
     const folder = await invoke('archive_mail', { id });
     inboxDrop(id);
     if (S.open && S.open.id === id) closeReader();
-    toast(t('toast.archived', { f: folder }));
+    toast(t('toast.archived', { f: folder }), false, m && undoBack({ account_id: m.account_id, folder, message_id: m.message_id }));
   } catch (e) {
     if (card) card.style.opacity = 1;
     toast(String(e), true);
   }
+}
+/** Rückgängig für eine Mail, die den Eingang verlassen hat: über die Message-ID zurück, ungelesen. */
+function undoBack(item) {
+  if (!item || !item.message_id) return undefined;
+  return { label: t('toast.undo'), run: () => invoke('unarchive_mails', { items: [item] }).then(n => toast(n ? t('toast.back_inbox') : t('toast.not_found'), !n)).catch(e => toast(String(e), true)) };
+}
+function findMail(id) {
+  return (S.data && (S.data.mails.find(x => x.id === id) || (S.data.pinned || []).find(x => x.id === id))) || (S.inbox || []).find(x => x.id === id);
 }
 async function setSeen(id, seen) {
   try {
@@ -989,6 +1008,21 @@ async function pickCreate(name) {
     fileMail(id, cat.id);
   } catch (e) { toast(String(e), true); }
 }
+// Ordnerwahl der Posteingangsansicht. Ein eigenes Menü statt <select>: Dessen Liste öffnet unter
+// Linux ein eigenes Fenster, das Popover verlöre den Fokus und schlösse sich.
+function openFolderMenu(anchor) {
+  closeFloat();
+  const acc = S.inboxAccount, current = folderOf(acc);
+  const folders = (S.folders[acc] || []).filter(f => !/^inbox$/i.test(f));
+  const items = [['', t('app.inbox')], ...folders.map(f => [f, f])];
+  if (current && !folders.includes(current)) items.push([current, current]);
+  const el = document.createElement('div');
+  el.className = 'float menu folder-menu';
+  el.innerHTML = items.map(([v, label]) => `<div class="pk-opt ${v === current ? 'sel' : ''}" data-folder="${esc(v)}">${ic(v ? 'folder' : 'inbox', 'sm')}${esc(label)}</div>`).join('');
+  placeFloat(el, anchor);
+  el.querySelector('.sel')?.scrollIntoView({ block: 'nearest' });
+  el.addEventListener('click', e => { e.stopPropagation(); const o = e.target.closest('[data-folder]'); if (o) { closeFloat(); openInbox(acc, o.dataset.folder); } });
+}
 // Überlauf: Aktionen, die nicht mehr in die Leiste passen.
 function openMore(id, actions, anchor) {
   closeFloat();
@@ -1015,10 +1049,10 @@ function runAction(a, id, anchor) {
 }
 async function trashMail(id) {
   try {
-    await invoke('trash_mail', { id });
+    const gone = await invoke('trash_mail', { id });
     inboxDrop(id);
     if (S.open && S.open.id === id) closeReader();
-    toast(t('toast.trashed'));
+    toast(t('toast.trashed'), false, undoBack(gone));
   } catch (e) { toast(String(e), true); }
 }
 async function makeTask(id) {
@@ -1092,9 +1126,6 @@ async function setKind(addr, bulk) {
   } catch (e) { toast(String(e), true); }
 }
 
-document.addEventListener('change', e => {
-  if (e.target.dataset && e.target.dataset.actChange === 'folder') openInbox(S.inboxAccount, e.target.value);
-});
 document.addEventListener('click', e => {
   if (!e.target.closest('#statusPop') && !e.target.closest('#statusBtn')) toggleStatus(false);
   if (!e.target.closest('.float')) closeFloat();
@@ -1118,6 +1149,7 @@ document.addEventListener('click', e => {
     case 'pin': togglePin(id); break;
     case 'task': makeTask(id); break;
     case 'filePick': openPicker(id, el); break;
+    case 'folderMenu': openFolderMenu(el); break;
     case 'more': openMore(id, el.dataset.more.split(','), el); break;
     case 'trash': trashMail(id); break;
     case 'openTask': openTask(el.dataset.key); break;

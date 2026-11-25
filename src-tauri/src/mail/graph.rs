@@ -394,11 +394,12 @@ impl Graph {
         Ok("Archive".into())
     }
 
-    pub async fn delete(&self, account: &AccountConfig, uid: u32) -> Result<()> {
+    pub async fn delete(&self, account: &AccountConfig, uid: u32) -> Result<String> {
         let id = self.graph_id(&account.id, uid).await?;
         // Deleted mails count as dealt with: read.
         self.patch(account, &id, json!({ "isRead": true })).await?;
-        self.move_id(account, &id, "deleteditems").await
+        self.move_id(account, &id, "deleteditems").await?;
+        Ok("Deleted Items".into())
     }
 
     /// Moves a mail out of the inbox (dealt with: read).
@@ -493,7 +494,7 @@ impl Graph {
 
     // ------------------------------------------------------------ watching
 
-    /// Signs in, loads the unread mails and checks again every minute.
+    /// Signs in, loads the inbox and checks again every minute.
     /// Returns only on errors; the caller reconnects.
     pub async fn run_watcher(&self, w: &Watch) -> Result<()> {
         let account = &w.account;
@@ -516,13 +517,15 @@ impl Graph {
         // Newest first: a mail that just arrived gets the highest uid.
         let recent = self.list(account, &format!("/me/mailFolders/inbox/messages?$select={SELECT}&$orderby=receivedDateTime desc&$top={FRESH_WINDOW}"), FRESH_WINDOW).await?;
         let recent = self.summaries(account, &recent).await;
-        let unread = self
-            .list(account, &format!("/me/mailFolders/inbox/messages?$select={SELECT}&$filter=receivedDateTime ge 1900-01-01T00:00:00Z and isRead eq false&$orderby=receivedDateTime desc&$top=100"), LIST_LIMIT)
-            .await?;
-        let mut mails = self.summaries(account, &unread).await;
+        // Everything in the inbox is listed until it leaves it; read or not only changes the look.
+        let inbox = self.list(account, &format!("/me/mailFolders/inbox/messages?$select={SELECT}&$orderby=receivedDateTime desc&$top=100"), LIST_LIMIT).await?;
+        let mut mails = self.summaries(account, &inbox).await;
         let flagged = self.list(account, &format!("/me/mailFolders/inbox/messages?$select={SELECT}&$filter=flag/flagStatus eq 'flagged'&$top={PIN_LIMIT}"), PIN_LIMIT).await?;
         let mut pinned = self.summaries(account, &flagged).await;
-        let total = self.get(account, "/me/mailFolders/inbox?$select=unreadItemCount").await?.get("unreadItemCount").and_then(Value::as_u64).unwrap_or(mails.len() as u64) as usize;
+        let counts = self.get(account, "/me/mailFolders/inbox?$select=unreadItemCount,totalItemCount").await?;
+        let count = |key: &str, or: usize| counts.get(key).and_then(Value::as_u64).map_or(or, |n| n as usize);
+        let total = count("unreadItemCount", mails.iter().filter(|m| !m.seen).count());
+        let inbox_total = count("totalItemCount", mails.len());
 
         for m in mails.iter_mut().chain(pinned.iter_mut()) {
             if let Some(bulk) = m.from_addr.as_deref().and_then(|a| w.kinds.get(a)) {
@@ -555,8 +558,8 @@ impl Graph {
 
         let known: HashSet<u32> = mails.iter().map(|m| m.uid).collect();
         pinned.retain(|p| !known.contains(&p.uid) || p.flagged);
-        w.store.set_account(&account.id, &account.label, total, mails, pinned);
-        status::set(&w.app, &account.id, "ok", format!("Connected – {total} unread"));
+        w.store.set_account(&account.id, &account.label, total, inbox_total, mails, pinned);
+        status::set(&w.app, &account.id, "ok", format!("Connected – {inbox_total} in the inbox, {total} unread"));
         tracing::debug!("[{}] Graph check in {} ms", account.label, started.elapsed().as_millis());
         Ok(())
     }

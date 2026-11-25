@@ -9,7 +9,7 @@
 | Drin | Bewusst noch nicht |
 |---|---|
 | IMAP-Konten (vorhandene Kontoverwaltung, Keyring) | Themen, Aufgaben, Wissen, Ablage, KI |
-| Beim Start: ungelesene Mails im Posteingang laden (neueste 200) | Triage, Board, Zustandskarten |
+| Beim Start: alle Mails im Posteingang laden, gelesen oder nicht (neueste 200; bis 2026-11-25 nur ungelesene) | Triage, Board, Zustandskarten |
 | Danach Echtzeit per IMAP IDLE, Abgleich, wenn Mails anderswo gelesen werden | Wachsendes Fenster, Seitenleiste, Vollbild |
 | **Tray: Zähler neuer Mails** im Symbol und im Tooltip | Antworten, HTML-Darstellung |
 | **Klick → Maillet-Fenster** mit der Liste neuer Mails | Mehrere Ordner je Konto |
@@ -74,6 +74,14 @@ pub trait Feature: Send + Sync {
 - **Frontend:** HTML/CSS/JS ohne Build-Schritt, CSS und Bausteine direkt aus dem Click-Dummy. Umstieg auf Svelte, wenn das Fenster wächst.
 - **Einstellungen:** Das vorhandene Einstellungsfenster bleibt (Konten, Codes).
 - **Hauptaktion:** *Erledigt* archiviert auf dem Server (Ordner mit `\Archive`, sonst einstellbar).
+- **Durchgangsstation (2026-11-25):** Die Startseite zeigt alles, was im Posteingang liegt. Eine Mail
+  bleibt dort, bis sie einen Ausgang bekommt (Erledigt, Aufgabe, Ablegen, Löschen); gelesen oder nicht
+  ändert nur die Darstellung (gelesene gedämpft). Öffnen markiert weiter als gelesen, die Mail bleibt
+  aber stehen. „Gelesen“ ist keine Standardaktion mehr, lässt sich aber zuschalten. Die Zahl im Tray
+  bleibt die der ungelesenen Mails (bzw. von Menschen), sie meldet Neues, nicht den Bestand.
+- **Ausgänge sind umkehrbar:** Erledigt und Löschen haben *Rückgängig* (über die Message-ID zurück in
+  den Eingang, ungelesen). Löschen leert nie endgültig: Ohne Papierkorb legt Maillet einen Ordner
+  `Trash` an.
 
 ---
 
