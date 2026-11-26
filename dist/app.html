@@ -76,7 +76,11 @@ main{display:flex;flex-direction:column;min-width:0;flex:1;min-height:0}
 /* Kopfleiste nach dem Rahmen der be-spex-Tray-Apps (kit PLAN K9): Symbol, Reiter, Anheften, Einstellungen */
 .top{display:flex;align-items:center;gap:2px;height:var(--toph);flex:none;padding:0 10px;border-bottom:1px solid var(--sx-line)}
 .top .mark{width:24px;height:24px;margin:0 8px 0 2px;flex:none}
-.tabs{display:flex;align-items:center;gap:2px}
+.tabs{display:flex;align-items:center;gap:2px;min-width:0}
+/* Jedes Postfach ist ein eigener Reiter; lange Namen werden gekürzt */
+#boxTabs{display:contents}
+#boxTabs .tab{min-width:0}
+#boxTabs .lab{max-width:140px;overflow:hidden;text-overflow:ellipsis}
 .tab{display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:var(--sx-radius-l);color:var(--sx-ink-2);font-weight:500;white-space:nowrap}
 .tab:hover{background:var(--sx-hover);color:var(--sx-ink)}
 .tab.on{background:var(--sx-surface);color:var(--sx-ink);box-shadow:0 0 0 1px var(--sx-line),0 1px 2px rgba(0,0,0,.06)}
@@ -312,7 +316,7 @@ h1{font-size:20px;margin:0;letter-spacing:-.02em}
     <div class="tabs" role="tablist">
       <button class="tab" id="tabHome" data-act="home" role="tab"><span class="lab"></span><span class="n" id="navBadge" hidden></span></button>
       <button class="tab" id="navTasks" data-act="tasks" role="tab" hidden><span class="lab"></span><span class="n" id="taskBadge" hidden></span></button>
-      <button class="tab" id="tabBoxes" data-act="inbox" role="tab"><span class="lab"></span></button>
+      <span id="boxTabs"></span>
     </div>
     <div class="grow" data-tauri-drag-region></div>
     <button class="ib" id="pinBtn" data-act="pinWin" aria-pressed="false"><svg class="i"><use href="#i-pin"/></svg></button>
@@ -386,7 +390,8 @@ const CODE_TTL = 120000;
 // (sie bleibt) senkrecht rechts. Reihenfolge und Auswahl: Einstellungen → Actions.
 // Kein „Gelesen“: Der Eingang ist eine Durchgangsstation, eine Mail verlässt ihn (zuschaltbar in den Einstellungen).
 // Reiter der Kopfleiste: Element, Ansicht, Text; Strg+1 … Strg+3 in dieser Reihenfolge.
-const TABS = [['tabHome', 'home', 'app.inbox_tab'], ['navTasks', 'tasks', 'app.tasks'], ['tabBoxes', 'inbox', 'app.mailboxes']];
+// Danach je Postfach ein eigener Reiter (#boxTabs), gebaut in render().
+const TABS = [['tabHome', 'home', 'app.inbox_tab'], ['navTasks', 'tasks', 'app.tasks']];
 const DEFAULT_ACTIONS = ['archive', 'task', 'file', 'pin', 'noise'];
 const EXITS = ['archive', 'task', 'file', 'delete'], MARKS = ['pin', 'read', 'noise'];
 const MAX_EXITS = 4, MAX_MARKS = 3;
@@ -439,13 +444,14 @@ function render() {
   const tb = $('#taskBadge'), nTasks = S.tasks ? S.tasks.filter(it => it.status !== 'done').length : 0;
   $('#navTasks').hidden = !(S.tasks && S.tasks.length) && S.view !== 'tasks';
   tb.hidden = !nTasks; tb.textContent = nTasks;
-  TABS.forEach(([id, view, key], i) => {
+  TABS.forEach(([id, view, key]) => {
     const tab = $('#' + id);
     tab.classList.toggle('on', S.view === view);
     tab.setAttribute('aria-selected', S.view === view);
     tab.querySelector('.lab').textContent = t(key);
-    tab.title = `${t(key)} (${t('key.ctrl')}+${i + 1})`;
+    tab.title = t(key);
   });
+  renderBoxTabs(d);
   // Rebuilding the view replaces its elements: the card or row that had the focus gets it back.
   const had = document.activeElement && document.activeElement.closest && document.activeElement.closest('#view [data-id], #view [data-key], #view [data-i]');
   const sel = had && (had.dataset.id ? `[data-id="${CSS.escape(had.dataset.id)}"]` : had.dataset.key ? `[data-key="${CSS.escape(had.dataset.key)}"]` : `[data-i="${had.dataset.i}"]`);
@@ -453,6 +459,23 @@ function render() {
   tickCodes();
   if (sel) { const again = $('#view').querySelector(`${sel}[tabindex]`); if (again) again.focus({ preventScroll: true }); }
 }
+
+// Die Postfächer als Reiter in der Kopfleiste, mit der Zahl ungelesener Mails.
+// Nur neu bauen, wenn sich etwas geändert hat, damit der Fokus auf einem Reiter bleibt.
+function renderBoxTabs(d) {
+  const html = d.accounts.map(a => {
+    const on = S.view === 'inbox' && S.inboxAccount === a.account_id;
+    return `<button class="tab ${on ? 'on' : ''}" data-act="inbox" data-acc="${esc(a.account_id)}" role="tab" aria-selected="${on}"><span class="lab">${esc(a.account)}</span>${a.unread_total ? `<span class="n">${a.unread_total > 99 ? '99+' : a.unread_total}</span>` : ''}</button>`;
+  }).join('');
+  const box = $('#boxTabs');
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  // Strg+1 … Strg+9 zählen die sichtbaren Reiter von links.
+  visibleTabs().forEach((tab, i) => {
+    const name = tab.querySelector('.lab').textContent;
+    tab.title = i < 9 ? `${name} (${t('key.ctrl')}+${i + 1})` : name;
+  });
+}
+const visibleTabs = () => [...document.querySelectorAll('.tabs .tab:not([hidden])')];
 
 function onboarding() {
   return `<div class="empty"><div class="big">📬</div><h1>${t('onb.title')}</h1>
@@ -494,12 +517,18 @@ function home(d, total) {
 }
 // Leerzustand der Übersicht: die Begrüßung, die früher oben stand, mit dem Stand des Eingangs.
 const greetEmpty = (text, summary) => `<div class="empty"><div class="big">🌿</div><b>${greet()}.</b><p>${esc(text)}</p><p class="faint">${summary}</p></div>`;
-// Rauschen als Zeile: Absender · Betreff, Zeit; beim Überfahren „ist ein Mensch“ und Erledigt.
-const noiseRow = m => `<div class="nrow ${m.seen ? 'read' : ''}" data-act="open" data-id="${esc(m.id)}" tabindex="0">
+// Rauschen als Zeile: Absender · Betreff, Zeit; beim Überfahren dieselben Aktionen wie an den
+// Karten (Einstellungen → Actions): erst die Markierungen, dann die Ausgänge, Erledigt ganz rechts.
+const noiseRow = m => {
+  const list = actList();
+  const marks = list.filter(a => MARKS.includes(a));
+  const exits = [...list.filter(a => EXITS.includes(a) && a !== 'archive'), ...(list.includes('archive') ? ['archive'] : [])];
+  return `<div class="nrow ${m.seen ? 'read' : ''}" data-act="open" data-id="${esc(m.id)}" tabindex="0">
     <span class="grow"><b>${esc(sender(m))}</b> · ${esc(m.subject || t('mail.no_subject'))}</span>
     <span class="faint when">${esc(when(m.date))}</span>
-    <span class="nacts">${actButton('noise', m)}${can('archive') ? actButton('archive', m) : ''}</span>
+    <span class="nacts">${[...marks, ...exits].map(a => actButton(a, m)).join('')}</span>
   </div>`;
+};
 // Besondere Zustände einer Mail als kleines Abzeichen am Absender-Symbol (rechts unten),
 // sichtbar ohne Überfahren. Weitere Zustände können hier dazukommen.
 function statusAvatar(m, cls = '') {
@@ -548,11 +577,9 @@ function inboxView(d) {
       <button class="ib sm" data-act="inboxHome" title="${t('inbox.back')}" ${folder ? '' : 'disabled'}>${ic('inbox', 'sm')}</button>
     </div>`;
   const title = acc ? acc.account : t('app.inbox');
-  // Die Konten, früher Einträge der Leiste links, als Chips über dem Postfach.
-  const accChips = d.accounts.length > 1 ? `<div class="chips">${d.accounts.map(a => `<button class="chip ${a.account_id === S.inboxAccount ? 'on' : ''}" data-act="inbox" data-acc="${esc(a.account_id)}">${esc(a.account)}${a.unread_total ? ` <span class="faint">${a.unread_total}</span>` : ''}</button>`).join('')}</div>` : '';
-  if (!S.inbox) return `${accChips}<div class="inbox-head"><div class="hero"><h1>${esc(title)}</h1><p>${t('tasks.loading')}</p></div>${pick}</div>${skeleton()}`;
+  if (!S.inbox) return `<div class="inbox-head"><div class="hero"><h1>${esc(title)}</h1><p>${t('tasks.loading')}</p></div>${pick}</div>${skeleton()}`;
   const list = S.inbox;
-  return `${accChips}<div class="inbox-head"><div class="hero"><h1>${esc(title)}</h1><p>${folder ? esc(folder) + ' · ' : ''}${t('inbox.summary', { n: list.length, u: list.filter(m => !m.seen).length, d: S.inboxDays })}</p></div>${pick}</div>
+  return `<div class="inbox-head"><div class="hero"><h1>${esc(title)}</h1><p>${folder ? esc(folder) + ' · ' : ''}${t('inbox.summary', { n: list.length, u: list.filter(m => !m.seen).length, d: S.inboxDays })}</p></div>${pick}</div>
     ${folder ? `<div class="folder-note">${t('inbox.folder_note')}</div>` : ''}
     <div class="cards">${list.map(card).join('') || empty(t('inbox.empty', { d: S.inboxDays }))}</div>
     ${S.inboxMore ? `<div class="more"><button class="btn" data-act="inboxMore">${t('inbox.load_more', { d: S.inboxBase })}</button></div>` : ''}`;
@@ -1246,10 +1273,7 @@ document.addEventListener('click', e => {
 function runUndo() {
   if (lastUndo && lastUndo.until > Date.now()) { const u = lastUndo; lastUndo = null; document.querySelectorAll('.toast').forEach(x => x.remove()); u.run(); }
 }
-function selectTab(view) {
-  const tab = TABS.find(x => x[1] === view);
-  if (tab) $('#' + tab[0]).click();
-}
+const selectTab = tab => { if (tab) tab.click(); };
 // Pfeiltasten: zur nächsten Karte oder Zeile in dieser Richtung, nach ihrer Lage auf dem Schirm.
 function moveFocus(key) {
   const items = [...document.querySelectorAll('#view .mcard[tabindex], #view .nrow, #view .pin-row')];
@@ -1282,11 +1306,12 @@ document.addEventListener('keydown', e => {
   // Tasten wie in Tasqlet (kit PLAN K9): Strg+1…3 und Strg+Tab wechseln die Reiter, Strg+Z macht rückgängig.
   if (e.ctrlKey && !e.altKey && !e.metaKey) {
     const n = /^[1-9]$/.test(e.key) ? +e.key : 0;
-    if (n && TABS[n - 1]) { e.preventDefault(); selectTab(TABS[n - 1][1]); return; }
-    if (e.key === 'Tab') {
+    const tabs = visibleTabs();
+    if (n && tabs[n - 1]) { e.preventDefault(); selectTab(tabs[n - 1]); return; }
+    if (e.key === 'Tab' && tabs.length) {
       e.preventDefault();
-      const i = Math.max(0, TABS.findIndex(x => x[1] === S.view));
-      selectTab(TABS[(i + (e.shiftKey ? TABS.length - 1 : 1)) % TABS.length][1]);
+      const i = Math.max(0, tabs.findIndex(x => x.classList.contains('on')));
+      selectTab(tabs[(i + (e.shiftKey ? tabs.length - 1 : 1)) % tabs.length]);
       return;
     }
     if (e.key.toLowerCase() === 'z' && !(e.target.closest && e.target.closest('input,textarea,[contenteditable]'))) { e.preventDefault(); runUndo(); return; }
