@@ -56,7 +56,47 @@
     return { rule: r.label, rule_id: r.id, stages, value }
   }
 
+  // The Maillet window (app.html): mails in the inbox, tasks, a fresh code.
+  const sec = minutesAgo => Math.floor(now / 1000) - minutesAgo * 60
+  const accName = id => accounts.find(a => a.id === id).label
+  let mid = 0
+  const m = (minutesAgo, account_id, from_name, from_addr, subject, preview, o = {}) => ({
+    id: `${account_id}:1:${++mid}`, account_id, account: accName(account_id), uid: mid, from_name, from_addr, subject, preview,
+    date: sec(minutesAgo), has_attachments: !!o.att, seen: !!o.seen, flagged: !!o.pinned, message_id: `<demo-${mid}@example>`,
+    bulk: !!o.bulk, findings: o.code ? [{ feature: 'otp', kind: 'code', value: o.code }] : [] })
+  const inbox = [
+    m(14, 'acc-work', 'Mira Hansen', 'mira.hansen@example-corp.com', 'Offer for the spring campaign – your feedback?', 'Hi Alex, attached is the revised offer. Could you look at the two open points before Friday?', { att: true }),
+    m(38, 'acc-proton', 'Jonas Weber', 'jonas.weber@example.org', 'Harz weekend: who brings the stove?', 'Train is booked for 8:32. Ada has the map, I can bring the gas – we still need someone for the stove.'),
+    m(71, 'acc-work', 'Sam Okafor', 'sam.okafor@example-corp.com', 'Release notes 2.4 – ready for review', 'Draft is in the shared folder. Two items still need a screenshot, the rest is done.', { seen: true }),
+    m(55, 'acc-gmail', 'Northwind Outdoor', 'news@northwind.example', 'Our autumn sale starts today', '', { bulk: true }),
+    m(190, 'acc-work', 'Product Weekly', 'digest@productweekly.example', 'Five ideas for better onboarding', '', { bulk: true, seen: true }),
+    m(260, 'acc-gmail', 'Parcel Service', 'noreply@parcel.example', 'Your parcel arrives tomorrow between 10 and 12', '', { bulk: true }),
+  ]
+  const pinned = [m(1500, 'acc-gmail', 'Lena Brandt', 'lena.brandt@example.org', 'Travel booking: Hamburg, 18–20 Nov', '', { pinned: true, seen: true })]
+  const task = (status, minutesAgo, account_id, name, addr, subject, preview) => ({ status, mail: m(minutesAgo, account_id, name, addr, subject, preview, { seen: true }) })
+  const tasks = [
+    task('open', 300, 'acc-work', 'Mira Hansen', 'mira.hansen@example-corp.com', 'Contract draft: comments by Friday', 'Please check clauses 4 and 7, legal has added two notes.'),
+    task('open', 1500, 'acc-work', 'Facility Team', 'facility@example-corp.com', 'New access card – pick up at reception', 'Your card is ready. Bring your ID.'),
+    task('progress', 1600, 'acc-work', 'Sam Okafor', 'sam.okafor@example-corp.com', 'Budget sheet Q1 – numbers for marketing', 'I need the campaign figures to finish the sheet.'),
+    task('progress', 4400, 'acc-gmail', 'Lena Brandt', 'lena.brandt@example.org', 'Workshop agenda, second draft', 'Changed the order of the sessions as discussed.'),
+    task('done', 5800, 'acc-gmail', 'Jonas Weber', 'jonas.weber@example.org', 'Train tickets for the Harz weekend', ''),
+  ]
+  const unread = id => inbox.filter(x => x.account_id === id && !x.seen).length
+  const mailData = {
+    accounts: accounts.map(a => ({ account_id: a.id, account: a.label, unread_total: unread(a.id), inbox_total: inbox.filter(x => x.account_id === a.id).length })),
+    mails: inbox, pinned, status: statuses.map(s => ({ account_id: s.account_id, state: s.state })),
+  }
+  const appStatus = {
+    version: '0.7.1', accounts: accounts.map(a => ({ account_id: a.id, account: a.label, state: 'ok', unread: unread(a.id), timestamp: sec(1) })),
+    api: { state: 'off', message: '' }, shortcut: { keys: 'Ctrl+Alt+M', error: null },
+    actions: ['archive', 'task', 'file', 'pin', 'noise'], categories: [], window_form: 'popup', inbox_days: 7, mark_read_on_open: true,
+  }
+
   const commands = {
+    get_i18n: () => ({ strings: window.__DEMO_I18N__ || {}, language: 'en', languages: [{ code: 'en', name: 'English' }] }),
+    list_mails: () => mailData,
+    list_tasks: () => tasks,
+    get_app_status: () => appStatus,
     get_accounts: () => accounts,
     get_rules: () => rules,
     get_status: () => statuses,
@@ -66,7 +106,8 @@
     get_app_info: () => ({ name: 'Maillet', tagline: 'your one-time password helper', version: '0.4.0' }),
     test_rule: testRule,
     save_rule: ({ rule: r }) => rules,
-    get_last_code: () => null,
+    get_last_code: () => location.pathname.endsWith('app.html') && location.hash === '#home'
+      ? JSON.stringify({ code: '482913', kind: 'code', account: 'Gmail', rule: 'GitHub', timestamp: now / 1000 - 20 }) : null,
     // ?theme=fjord&style=stage tries a colour theme and style; without, the windows follow light/dark of the system
     get_appearance: () => { const q = new URLSearchParams(location.search); return q.get('theme') ? { theme: q.get('theme'), style: q.get('style') || 'calm' } : null },
   }
@@ -92,6 +133,8 @@
         body: 'Hey alex-doe!\n\nVerification code: 482913\n\nIf you did not attempt to sign in, change your password.' } })
     },
     catalog: () => go('catalog'),
+    home: () => {},
+    tasks: () => document.getElementById('navTasks').click(),
     log: async () => {
       go('log')
       await new Promise(r => setTimeout(r, 200))

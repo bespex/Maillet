@@ -12,7 +12,7 @@ Maillet does not replace your mail program yet: it reads, sorts and manages, but
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/maillet-home-dark.png">
-  <img src="docs/images/maillet-home-light.png" width="700" alt="Maillet's overview: a fresh login code, a pinned mail and the new mails as cards, grouped into people and noise">
+  <img src="docs/images/maillet-home-light.png" width="700" alt="Maillet's overview: a tab per mailbox, a pinned mail, a fresh login code and the new mails as cards, newsletters in a list below">
 </picture>
 
 ## Install

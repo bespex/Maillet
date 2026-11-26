@@ -19,6 +19,8 @@ OUT = ROOT / "docs" / "images"
 
 # name: (page, width, height)
 SHOTS = {
+    "maillet-home": ("app.html#home", 700, 700),
+    "maillet-tasks": ("app.html#tasks", 700, 700),
     "popup-code": ("code.html#code", 400, 236),
     "popup-link": ("code.html#link", 400, 220),
     "accounts": ("index.html#accounts", 820, 560),
@@ -41,8 +43,9 @@ def prepare(site: Path) -> None:
     shutil.copytree(ROOT / "dist", site)
     shutil.copy(HERE / "mock-tauri.js", site)
     catalog = (ROOT / "catalog" / "catalog.json").read_text()
-    inject = f'<meta charset="utf-8">\n<script>window.__DEMO_CATALOG__ = {catalog}</script>\n<script src="mock-tauri.js"></script>'
-    for page in ("index.html", "code.html"):
+    i18n = (ROOT / "dist" / "i18n" / "en.json").read_text()
+    inject = f'<meta charset="utf-8">\n<script>window.__DEMO_CATALOG__ = {catalog}\nwindow.__DEMO_I18N__ = {i18n}</script>\n<script src="mock-tauri.js"></script>'
+    for page in ("index.html", "code.html", "app.html"):
         html = (site / page).read_text()
         (site / page).write_text(html.replace('<meta charset="utf-8">', inject, 1))
 
