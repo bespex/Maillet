@@ -167,15 +167,26 @@ pub fn show(app: &AppHandle, label: &str) {
             WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("index.html".into()))
                 .title(crate::base::i18n::t("win.settings", &[]))
                 .inner_size(820.0, 720.0)
+                .visible(false)
                 .build()
         }
         "about" => WebviewWindowBuilder::new(app, "about", WebviewUrl::App("about.html".into()))
             .title(crate::base::i18n::t("win.about", &[]))
             .inner_size(360.0, 340.0)
             .resizable(false)
+            .visible(false)
             .build(),
         _ => return,
     };
+    // Built hidden: the page shows itself once its first picture is complete (`window_ready`), so the
+    // content does not visibly build up. Should the page never report, it shows after a moment anyway.
+    if let Ok(w) = &built {
+        let w = w.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(READY_TIMEOUT_MS));
+            reveal(&w);
+        });
+    }
     match built {
         Ok(w) if label == "settings" => {
             let handle = app.clone();
@@ -191,6 +202,17 @@ pub fn show(app: &AppHandle, label: &str) {
             SETTINGS_OPENING.store(false, Ordering::Relaxed);
             tracing::warn!("Could not open the {label} window: {e}");
         }
+    }
+}
+
+/// How long a Settings or About window may take to report ready before it is shown anyway.
+const READY_TIMEOUT_MS: u64 = 1500;
+
+/// Shows a Settings or About window that was built hidden, once; later calls change nothing.
+pub fn reveal(w: &WebviewWindow) {
+    if !w.is_visible().unwrap_or(true) {
+        let _ = w.show();
+        let _ = w.set_focus();
     }
 }
 

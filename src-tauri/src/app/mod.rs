@@ -860,6 +860,12 @@ async fn show_about(app: AppHandle) {
     windows::show(&app, "about");
 }
 
+/// Settings and About are built hidden and call this once their first picture is complete.
+#[tauri::command]
+fn window_ready(window: tauri::WebviewWindow) {
+    windows::reveal(&window);
+}
+
 /// Closes the calling window (Esc in About and Settings); it is built again when next opened.
 #[tauri::command]
 fn hide_window(window: tauri::WebviewWindow) {
@@ -1132,7 +1138,7 @@ pub fn run() {
             get_status, get_log, clear_log,
             get_rules, save_rule, delete_rule, move_rule, export_rules, preview_import, apply_import, test_rule,
             get_default_rules, get_catalog, get_api_settings, set_api_settings, regenerate_api_token,
-            save_json_file, open_json_file, attachments::view_attachment, attachments::save_attachment, show_about, hide_window, get_app_info,
+            save_json_file, open_json_file, attachments::view_attachment, attachments::save_attachment, show_about, hide_window, window_ready, get_app_info,
             windows::pin_main, popup::get_last_code, popup::copy_code, popup::open_link, popup::hide_code_popup, popup::resize_code_popup,
         ])
         .setup(move |app| {

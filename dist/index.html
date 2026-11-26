@@ -683,12 +683,12 @@ function go(sec) {
   document.querySelectorAll('.nav-btn').forEach(el => el.classList.toggle('on', el.dataset.sec === sec || (el.dataset.sec === 'otp' && OTP_TABS.includes(sec))))
   document.querySelectorAll('.tab').forEach(el => el.classList.toggle('on', el.dataset.tab === sec))
   document.querySelector('.content').scrollTop = 0
-  if (sec === 'accounts') closeAccount()
+  if (sec === 'accounts') return closeAccount()
   if (sec === 'rules') closeRule()
   if (sec === 'catalog') loadCatalog()
   if (sec === 'api') loadApi()
   if (sec === 'log') loadLog()
-  if (sec === 'general' || sec === 'notifications') loadPreferences()
+  if (sec === 'general' || sec === 'notifications') return loadPreferences()
   if (sec === 'actions') loadActions()
 }
 
@@ -806,7 +806,7 @@ function openAccount(id) {
 function closeAccount() {
   editAccountId = null
   showAccountView(false)
-  loadAccounts()
+  return loadAccounts()
 }
 
 // Switch the port along with the encryption unless a custom port was entered.
@@ -1746,9 +1746,12 @@ document.addEventListener('keyup', ev => {
   if (!editing) invoke('hide_window').catch(() => {})
 })
 
-i18nReady.then(() => {
-  go('general')
-  invoke('get_accounts').then(a => { if (!a.length) go('accounts') }).catch(() => {})
+// The window is built hidden and shown once the first section is filled in (window_ready), so its
+// content does not visibly build up. Without an account it opens on Accounts right away.
+i18nReady.then(async () => {
+  const none = await invoke('get_accounts').then(a => !a.length).catch(() => false)
+  await Promise.resolve(go(none ? 'accounts' : 'general')).catch(() => {})
+  invoke('window_ready').catch(() => {})
   setupListeners()
   invoke('get_api_settings').then(st => renderApiStatus(st.status)).catch(() => {})
 })
@@ -1756,9 +1759,9 @@ i18nReady.then(() => {
 // ---- General & Notifications ----
 let pendingShortcut = null
 async function loadPreferences() {
-  const i18n = await invoke('get_i18n')
+  // Both at once: one after the other, the fields filled in visibly late.
+  const [i18n, st] = await Promise.all([invoke('get_i18n'), invoke('get_app_status')])
   document.getElementById('lang-seg').innerHTML = i18n.languages.map(l => `<button class="${l.code === i18n.language ? 'on' : ''}" aria-pressed="${l.code === i18n.language}" onclick="pickLanguage('${l.code}')">${esc(l.name)}</button>`).join('')
-  const st = await invoke('get_app_status')
   document.getElementById('nt-enabled').checked = st.notifications
   document.getElementById('nt-people').checked = st.tray_people_only
   showShortcut(st.shortcut)

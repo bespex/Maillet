@@ -35,7 +35,7 @@ p { margin-top:12px; font-size:12px; color:var(--sx-ink-2); max-width:280px; lin
   document.getElementById('name').textContent = info.name
   document.getElementById('tagline').textContent = info.tagline
   document.getElementById('version').textContent = info.version
-})()
+})().finally(() => window.__TAURI__ && window.__TAURI__.core.invoke('window_ready'))
 </script>
 </body>
 </html>
