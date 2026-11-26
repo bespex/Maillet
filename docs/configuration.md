@@ -13,6 +13,7 @@ Everything you set up in Maillet's settings is stored in `~/.config/maillet/` an
 
 - **Copy `~/.config/maillet/`.** That carries over accounts, rules and API settings.
 - **Passwords aren't in these files.** They're in the keyring. After moving, edit each account and enter its password again. Until then the account shows *No password stored*.
+- **Every save is safe against crashes.** `config.json` and `rules.json` are written to a temporary file first and then swapped in; the version before stays as `config.json.prev` and `rules.json.prev`. If a file cannot be read at start, Maillet keeps it as `….broken` for repair and uses the previous version instead of starting empty.
 - **To pass on only rules**, e.g. to colleagues, use **Export** and **Import** in the rule list, see [Sharing rules](rules.md#sharing-rules). That leaves out accounts and account tags.
 
 ---

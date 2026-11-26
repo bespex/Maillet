@@ -1,14 +1,16 @@
 //! Windows: the Maillet window, settings, about and the OTP code popup.
 //!
-//! The Maillet window has two forms:
-//! - **Popup** (tray click): next to the tray icon, fixed size, hides when
-//!   clicking elsewhere.
-//! - **Sidebar** (global shortcut): docked to the right edge, full height,
-//!   stays open until closed.
+//! The Maillet window has two forms, chosen in the settings (General → Window); the choice holds for
+//! tray click, global shortcut and every other way of opening (kit PLAN K9):
+//! - **Popup**: next to the tray icon, fixed size, hides when clicking elsewhere unless pinned.
+//! - **Sidebar**: full height at the edge of the screen half with the tray icon (or the edge the
+//!   user picked); it stays when clicking elsewhere, but is kept above other windows only when
+//!   pinned; the tray icon or the shortcut bring it back to the front.
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 pub const MAIN: &str = "main";
 /// Fixed window size (logical px): enough to read a mail comfortably. It is
@@ -26,14 +28,54 @@ pub enum Form {
     Sidebar,
 }
 
+impl Form {
+    pub fn parse(s: Option<&str>) -> Self {
+        if s == Some("sidebar") { Form::Sidebar } else { Form::Popup }
+    }
+    fn name(self) -> &'static str {
+        match self {
+            Form::Popup => "popup",
+            Form::Sidebar => "sidebar",
+        }
+    }
+}
+
+/// Edge of the sidebar.
+#[derive(Clone, Copy, PartialEq, Default, Debug)]
+pub enum Side {
+    /// The half of the screen with the tray icon, as last seen on a tray click.
+    #[default]
+    Auto,
+    Left,
+    Right,
+}
+
+impl Side {
+    pub fn parse(s: Option<&str>) -> Self {
+        match s {
+            Some("left") => Side::Left,
+            Some("right") => Side::Right,
+            _ => Side::Auto,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct MainWindowState {
     form: Mutex<Form>,
+    /// The form and side from the settings.
+    pref: Mutex<(Form, Side)>,
+    /// Whether the tray icon was last seen in the left half of its screen.
+    tray_left: Mutex<Option<bool>>,
     last_click: Mutex<Option<(i32, i32)>>,
     /// Last geometry sent to the window (x, y, physical height).
     applied: Mutex<Option<(i32, i32, i32)>>,
     hidden_on_blur: Mutex<Option<Instant>>,
     shown_at: Mutex<Option<Instant>>,
+    /// Pinned: stays open (popup) or on top (sidebar) when another window gets the focus.
+    pinned: AtomicBool,
+    /// The sidebar went behind other windows when it lost the focus, at this moment.
+    lowered: Mutex<Option<Instant>>,
 }
 
 pub fn create(app: &tauri::App) -> tauri::Result<()> {
@@ -51,13 +93,22 @@ pub fn create(app: &tauri::App) -> tauri::Result<()> {
             let state = handle.state::<MainWindowState>();
             let just_shown = state.shown_at.lock().unwrap().is_some_and(|t| t.elapsed() < Duration::from_millis(400));
             // Open settings keep the popup open, so their changes show there at once
-            let settings_open = handle.get_webview_window("settings").is_some_and(|w| w.is_visible().unwrap_or(false));
-            if *state.form.lock().unwrap() == Form::Popup && !just_shown && !settings_open {
+            let settings_open = settings_open(&handle);
+            let pinned = state.pinned.load(Ordering::Relaxed);
+            // The sidebar stays; the window that took the focus may now cover it.
+            if *state.form.lock().unwrap() == Form::Sidebar && !pinned && !just_shown {
+                *state.lowered.lock().unwrap() = Some(Instant::now());
+            }
+            if *state.form.lock().unwrap() == Form::Popup && !just_shown && !settings_open && !pinned {
                 *state.hidden_on_blur.lock().unwrap() = Some(Instant::now());
                 if let Some(w) = handle.get_webview_window(MAIN) {
                     let _ = w.hide();
                 }
             }
+        }
+        // A click into the sidebar brings it to the front again.
+        WindowEvent::Focused(true) => {
+            handle.state::<MainWindowState>().lowered.lock().unwrap().take();
         }
         WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
@@ -68,29 +119,8 @@ pub fn create(app: &tauri::App) -> tauri::Result<()> {
         _ => {}
     });
 
-    let settings = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("index.html".into()))
-        .title(crate::base::i18n::t("win.settings", &[]))
-        .inner_size(820.0, 760.0)
-        .visible(false)
-        .build()?;
-    let app_handle = app.handle().clone();
-    let w = settings.clone();
-    settings.on_window_event(move |event| {
-        if let WindowEvent::CloseRequested { api, .. } = event {
-            api.prevent_close();
-            let _ = w.hide();
-            refocus_main(&app_handle);
-        }
-    });
-
-    let about = WebviewWindowBuilder::new(app, "about", WebviewUrl::App("about.html".into()))
-        .title(crate::base::i18n::t("win.about", &[]))
-        .inner_size(360.0, 340.0)
-        .resizable(false)
-        .visible(false)
-        .build()?;
-    hide_on_close(&about);
-
+    // Settings and About are built when first opened and destroyed when closed (`show`): each
+    // window is a web process of its own. The code popup is prepared, it must appear at once.
     WebviewWindowBuilder::new(app, "code", WebviewUrl::App("code.html".into()))
         .title(crate::base::i18n::t("win.code", &[]))
         .inner_size(crate::features::otp::popup::POPUP_WIDTH, 250.0)
@@ -114,55 +144,113 @@ fn refocus_main(app: &AppHandle) {
     }
 }
 
-fn hide_on_close(window: &WebviewWindow) {
-    let w = window.clone();
-    window.on_window_event(move |event| {
-        if let WindowEvent::CloseRequested { api, .. } = event {
-            api.prevent_close();
-            let _ = w.hide();
-        }
-    });
+/// Set before the settings window is built, cleared when it is gone: the main window may lose the
+/// focus to it before it counts as visible, and must stay open then.
+static SETTINGS_OPENING: AtomicBool = AtomicBool::new(false);
+
+/// Whether the settings are open (or opening): then the popup does not hide on focus loss.
+fn settings_open(app: &AppHandle) -> bool {
+    SETTINGS_OPENING.load(Ordering::Relaxed) || app.get_webview_window("settings").is_some_and(|w| w.is_visible().unwrap_or(false))
 }
 
+/// Opens Settings or About, building the window if it is not there yet; closing destroys it.
 pub fn show(app: &AppHandle, label: &str) {
     if let Some(w) = app.get_webview_window(label) {
+        let _ = w.unminimize();
         let _ = w.show();
         let _ = w.set_focus();
+        return;
+    }
+    let built = match label {
+        "settings" => {
+            SETTINGS_OPENING.store(true, Ordering::Relaxed);
+            WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("index.html".into()))
+                .title(crate::base::i18n::t("win.settings", &[]))
+                .inner_size(820.0, 720.0)
+                .build()
+        }
+        "about" => WebviewWindowBuilder::new(app, "about", WebviewUrl::App("about.html".into()))
+            .title(crate::base::i18n::t("win.about", &[]))
+            .inner_size(360.0, 340.0)
+            .resizable(false)
+            .build(),
+        _ => return,
+    };
+    match built {
+        Ok(w) if label == "settings" => {
+            let handle = app.clone();
+            w.on_window_event(move |event| {
+                if let WindowEvent::Destroyed = event {
+                    SETTINGS_OPENING.store(false, Ordering::Relaxed);
+                    refocus_main(&handle);
+                }
+            });
+        }
+        Ok(_) => {}
+        Err(e) => {
+            SETTINGS_OPENING.store(false, Ordering::Relaxed);
+            tracing::warn!("Could not open the {label} window: {e}");
+        }
     }
 }
 
-fn current_form(app: &AppHandle) -> Form {
-    *app.state::<MainWindowState>().form.lock().unwrap()
+/// The form and side from the settings; an open window takes the new form at once.
+pub fn set_pref(app: &AppHandle, form: Form, side: Side) {
+    let state = app.state::<MainWindowState>();
+    *state.pref.lock().unwrap() = (form, side);
+    // An open window (the settings keep it open) changes its form in place, without taking the
+    // focus from the settings window.
+    if let Some(w) = app.get_webview_window(MAIN).filter(|w| w.is_visible().unwrap_or(false)) {
+        *state.form.lock().unwrap() = form;
+        state.pinned.store(false, Ordering::Relaxed);
+        let _ = w.set_always_on_top(form == Form::Popup);
+        layout(app, &w);
+        let _ = app.emit("main-shown", form.name());
+    }
 }
 
-/// Tray click: popup at the icon; closes an open popup, turns the sidebar into the popup.
+/// Tray click (with the icon's position) and global shortcut (without): opens the window in the
+/// form from the settings, or hides it if it is open.
 pub fn toggle_main(app: &AppHandle, at: Option<(i32, i32)>) {
     let Some(w) = app.get_webview_window(MAIN) else { return };
     let state = app.state::<MainWindowState>();
-    // Clicking the icon first takes the focus away, which already hid the popup.
+    // Clicking the icon or the key grab of the shortcut first takes the focus away, which may
+    // already have hidden the popup a moment ago – then the window counts as open.
     let just_hidden = state.hidden_on_blur.lock().unwrap().is_some_and(|t| t.elapsed() < Duration::from_millis(400));
-    if w.is_visible().unwrap_or(false) && current_form(app) == Form::Popup {
+    // A sidebar behind other windows comes to the front; one that was in front a moment ago (this
+    // very click took its focus) hides.
+    let lowered = *state.lowered.lock().unwrap();
+    let behind = lowered.is_some_and(|t| t.elapsed() >= Duration::from_millis(400));
+    if w.is_visible().unwrap_or(false) && current_is_sidebar(app) && behind {
+        show_main(app, at);
+    } else if w.is_visible().unwrap_or(false) {
         let _ = w.hide();
     } else if !just_hidden {
         show_main(app, at);
     }
 }
 
-/// Global shortcut: opens the sidebar, or closes the window if it is open.
-pub fn toggle_sidebar(app: &AppHandle) {
+/// Global shortcut: like the tray click, except that a pinned sidebar is never hidden by it, only
+/// brought to the front with the focus (it is kept above other windows anyway).
+pub fn toggle_main_by_key(app: &AppHandle) {
     let Some(w) = app.get_webview_window(MAIN) else { return };
-    // The key grab of the shortcut takes the focus away, which may already
-    // have hidden the popup a moment ago – then the window counts as open.
-    let just_hidden = app.state::<MainWindowState>().hidden_on_blur.lock().unwrap().is_some_and(|t| t.elapsed() < Duration::from_millis(400));
-    if w.is_visible().unwrap_or(false) {
-        let _ = w.hide();
-    } else if !just_hidden {
-        show_form(app, Form::Sidebar, None);
+    let pinned = app.state::<MainWindowState>().pinned.load(Ordering::Relaxed);
+    if w.is_visible().unwrap_or(false) && current_is_sidebar(app) && pinned {
+        let _ = w.set_focus();
+        activate_x11(&w);
+    } else {
+        toggle_main(app, None);
     }
 }
 
+fn current_is_sidebar(app: &AppHandle) -> bool {
+    *app.state::<MainWindowState>().form.lock().unwrap() == Form::Sidebar
+}
+
+/// Opens the window in the form from the settings (tray click, tray menu, notification).
 pub fn show_main(app: &AppHandle, at: Option<(i32, i32)>) {
-    show_form(app, Form::Popup, at);
+    let form = app.state::<MainWindowState>().pref.lock().unwrap().0;
+    show_form(app, form, at);
 }
 
 fn show_form(app: &AppHandle, form: Form, at: Option<(i32, i32)>) {
@@ -173,6 +261,10 @@ fn show_form(app: &AppHandle, form: Form, at: Option<(i32, i32)>) {
         *state.last_click.lock().unwrap() = Some(p);
     }
     *state.shown_at.lock().unwrap() = Some(Instant::now());
+    // Every opening starts unpinned and in front; the page resets its pin button on this event.
+    state.pinned.store(false, Ordering::Relaxed);
+    *state.lowered.lock().unwrap() = None;
+    let _ = app.emit("main-shown", form.name());
     // Switching the form of an open window: hide it first, so it never shows
     // up with the size of the other form.
     if w.is_visible().unwrap_or(false) {
@@ -183,9 +275,9 @@ fn show_form(app: &AppHandle, form: Form, at: Option<(i32, i32)>) {
     layout(app, &w);
     let _ = w.show();
     layout(app, &w);
-    // Both forms must stay visible above other always-on-top windows (a drop-down
-    // terminal such as Guake) when summoned.
-    let _ = w.set_always_on_top(true);
+    // The popup must stay visible above other always-on-top windows (a drop-down terminal such as
+    // Guake) when summoned; the sidebar is kept above other windows only when pinned.
+    let _ = w.set_always_on_top(form == Form::Popup);
     let _ = w.set_focus();
     activate_x11(&w);
 }
@@ -206,8 +298,17 @@ fn layout(app: &AppHandle, w: &WebviewWindow) {
     let (ax, ay, aw, ah) = (area.position.x, area.position.y, area.size.width as i32, area.size.height as i32);
     let width = ((WIDTH * scale).round() as i32).min(aw);
 
+    // Seen from a tray click: in which half of its screen the icon sits.
+    if let Some((cx, _)) = anchor {
+        *state.tray_left.lock().unwrap() = Some(cx < ax + aw / 2);
+    }
+    let left = match state.pref.lock().unwrap().1 {
+        Side::Left => true,
+        Side::Right => false,
+        Side::Auto => state.tray_left.lock().unwrap().unwrap_or(false),
+    };
     let (height, x, y) = match form {
-        Form::Sidebar => (ah, ax + aw - width, ay),
+        Form::Sidebar => (ah, if left { ax } else { ax + aw - width }, ay),
         Form::Popup => {
             // Smaller only if the screen itself is smaller.
             let height = ((HEIGHT * scale).round() as i32).min(ah - 2 * MARGIN);
@@ -309,5 +410,21 @@ fn send_active_window(xid: u64) {
         (x.XSendEvent)(display, root, xlib::False, xlib::SubstructureRedirectMask | xlib::SubstructureNotifyMask, &mut event);
         (x.XFlush)(display);
         (x.XCloseDisplay)(display);
+    }
+}
+
+/// Pin or unpin: pinned, the popup stays open when another window gets the focus and the sidebar is
+/// kept above other windows (as in Tasqlet); unpinned, other windows may cover the sidebar.
+#[tauri::command]
+pub fn pin_main(app: AppHandle, pinned: bool) {
+    let state = app.state::<MainWindowState>();
+    state.pinned.store(pinned, Ordering::Relaxed);
+    if current_is_sidebar(&app) {
+        if pinned {
+            *state.lowered.lock().unwrap() = None;
+        }
+        if let Some(w) = app.get_webview_window(MAIN) {
+            let _ = w.set_always_on_top(pinned);
+        }
     }
 }

@@ -197,7 +197,9 @@ impl Graph {
             }
             let resp = req.send().await.with_context(|| format!("Microsoft Graph is not reachable ({})", host(&url)))?;
             if resp.status() == reqwest::StatusCode::UNAUTHORIZED && attempt == 0 {
-                self.tokens.lock().await.get_mut(&account.id).map(|t| t.expires = Instant::now());
+                if let Some(t) = self.tokens.lock().await.get_mut(&account.id) {
+                    t.expires = Instant::now();
+                }
                 continue;
             }
             if !resp.status().is_success() {
@@ -485,7 +487,7 @@ impl Graph {
     pub async fn test_connection(&self, account: &AccountConfig) -> Result<String> {
         let inbox = self.get(account, "/me/mailFolders/inbox?$select=unreadItemCount,totalItemCount").await?;
         let n = |k: &str| inbox.get(k).and_then(Value::as_u64).unwrap_or(0);
-        Ok(format!("Connected to Microsoft 365 – {} mails in the inbox, {} unread", n("totalItemCount"), n("unreadItemCount")))
+        Ok(crate::base::i18n::t("acc.test_graph", &[("n", &n("totalItemCount").to_string()), ("u", &n("unreadItemCount").to_string())]))
     }
 
     pub async fn keep_warm(&self, account: &AccountConfig) -> Result<()> {
@@ -498,7 +500,7 @@ impl Graph {
     /// Returns only on errors; the caller reconnects.
     pub async fn run_watcher(&self, w: &Watch) -> Result<()> {
         let account = &w.account;
-        status::set(&w.app, &account.id, "connecting", "Signing in to Microsoft …".to_string());
+        status::set(&w.app, &account.id, "connecting", crate::base::i18n::t("acc.ms_signin", &[]));
         self.token(account).await?;
         tracing::info!("[{}] Connected to Microsoft Graph – watching the inbox", account.label);
         log::event(&w.app, &account.id, &account.label, "info", "Connected to Microsoft 365 – checking every minute");
@@ -559,7 +561,7 @@ impl Graph {
         let known: HashSet<u32> = mails.iter().map(|m| m.uid).collect();
         pinned.retain(|p| !known.contains(&p.uid) || p.flagged);
         w.store.set_account(&account.id, &account.label, total, inbox_total, mails, pinned);
-        status::set(&w.app, &account.id, "ok", format!("Connected – {inbox_total} in the inbox, {total} unread"));
+        status::set(&w.app, &account.id, "ok", crate::base::i18n::t("acc.connected", &[("n", &inbox_total.to_string()), ("u", &total.to_string())]));
         tracing::debug!("[{}] Graph check in {} ms", account.label, started.elapsed().as_millis());
         Ok(())
     }

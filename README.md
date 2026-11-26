@@ -101,6 +101,11 @@ Day to day:
 - **Attachments:** *View* opens an attachment with the program registered for its type, on a temporary copy
   that never lands in your Downloads folder. *Save* asks where to store it.
 - **Tray menu:** *Check now* checks all mailboxes immediately; the menu also opens *Settings* and *About*.
+- **Popup or sidebar:** under *Settings → General → Window* Maillet opens either as a popup at the tray
+  icon or as a sidebar over the full height of the screen, on the side of the tray icon or an edge you
+  pick. The choice holds for the tray click and the global shortcut alike. Clicking elsewhere hides the
+  popup and sends the sidebar behind other windows; pinned (📌), either stays in front while you work
+  elsewhere.
 - **Connection problems** show up on the account card and as a desktop notification. Maillet reconnects on
   its own.
 - **No popup for a code?** The *Log* tab shows every checked mail and why each rule did or didn't match.

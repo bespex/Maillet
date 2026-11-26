@@ -11,7 +11,7 @@ pub struct MailBody {
 }
 
 /// Result of a feature looking at a mail, e.g. a one-time code.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Finding {
     /// Feature id, e.g. `otp`.
     pub feature: String,
@@ -23,7 +23,7 @@ pub struct Finding {
 }
 
 /// Everything the mail list needs, without the full text.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MailSummary {
     /// Stable within a mailbox generation: `account:uidvalidity:uid`.
     pub id: String,

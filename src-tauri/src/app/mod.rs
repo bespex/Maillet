@@ -75,7 +75,7 @@ async fn locate(state: &AppState, id: &str) -> Result<(AccountConfig, u32), Stri
             (account_id, uid)
         }
     };
-    let account = config::accounts_with_passwords().await
+    let account = config::accounts_with_passwords_in(&state.config).await
         .map_err(err)?
         .into_iter()
         .find(|a| a.id == account_id)
@@ -114,8 +114,8 @@ async fn archive_mail(state: State<'_, AppState>, id: String) -> Result<String, 
 const TASK_FOLDER: &str = "Tasks";
 
 
-async fn account_by_id(id: &str) -> Result<AccountConfig, String> {
-    config::accounts_with_passwords().await.map_err(err)?.into_iter().find(|a| a.id == id).ok_or_else(|| "Account not found".into())
+async fn account_by_id(state: &AppState, id: &str) -> Result<AccountConfig, String> {
+    config::accounts_with_passwords_in(&state.config).await.map_err(err)?.into_iter().find(|a| a.id == id).ok_or_else(|| "Account not found".into())
 }
 
 /// The account's task folder; `create` makes it on first use.
@@ -165,8 +165,8 @@ async fn make_task(app: AppHandle, state: State<'_, AppState>, id: String) -> Re
     Ok(TaskRef { account_id: account.id, message_id })
 }
 
-fn categories(state: &AppState) -> Vec<config::Category> {
-    state.config.try_lock().ok().and_then(|c| c.categories.clone()).unwrap_or_else(config::default_categories)
+fn categories(cfg: &config::AppConfig) -> Vec<config::Category> {
+    cfg.categories.clone().unwrap_or_else(config::default_categories)
 }
 
 #[derive(serde::Serialize)]
@@ -179,7 +179,7 @@ struct Filed {
 /// Files a mail in the folder of a category (created on first use).
 #[tauri::command]
 async fn file_mail(state: State<'_, AppState>, id: String, category: String) -> Result<Filed, String> {
-    let cat = categories(&state).into_iter().find(|c| c.id == category).ok_or("Unknown category")?;
+    let cat = categories(&*state.config.lock().await).into_iter().find(|c| c.id == category).ok_or("Unknown category")?;
     let message_id = state.store.find(&id).and_then(|m| m.message_id);
     let (account, uid) = locate(&state, &id).await?;
     let folder = state.commands.resolve_folder(&account, &cat.folder, true).await.map_err(err)?.ok_or("Folder could not be created")?;
@@ -191,7 +191,7 @@ async fn file_mail(state: State<'_, AppState>, id: String, category: String) -> 
 /// Undo of [`file_mail`]: back to the inbox.
 #[tauri::command]
 async fn unfile_mail(state: State<'_, AppState>, account_id: String, message_id: String, folder: String) -> Result<(), String> {
-    let account = account_by_id(&account_id).await?;
+    let account = account_by_id(&state, &account_id).await?;
     state.commands.move_found(&account, &[folder], &message_id, Some(&account.mailbox)).await.map_err(err)?;
     state.check_now.notify_waiters();
     Ok(())
@@ -208,7 +208,7 @@ async fn set_categories(app: AppHandle, categories: Vec<config::Category>) -> Re
 /// Folders of one account, for switching the inbox view.
 #[tauri::command]
 async fn list_account_folders(state: State<'_, AppState>, account_id: String) -> Result<Vec<String>, String> {
-    let account = account_by_id(&account_id).await?;
+    let account = account_by_id(&state, &account_id).await?;
     state.commands.list_folders(&account).await.map_err(err)
 }
 
@@ -216,14 +216,14 @@ async fn list_account_folders(state: State<'_, AppState>, account_id: String) ->
 /// that folder, not to the watched inbox).
 #[tauri::command]
 async fn get_folder_mail(state: State<'_, AppState>, cache: State<'_, attachments::AttachmentCache>, account_id: String, folder: String, message_id: String) -> Result<MailContent, String> {
-    let account = account_by_id(&account_id).await?;
+    let account = account_by_id(&state, &account_id).await?;
     state.commands.content_by_message_id(&account, vec![folder], &message_id).await.map(|c| cache.keep(c)).map_err(err)
 }
 
 /// Folder names of all accounts, for choosing an existing folder as target.
 #[tauri::command]
 async fn list_folders(state: State<'_, AppState>) -> Result<Vec<String>, String> {
-    let accounts: Vec<_> = config::accounts_with_passwords().await.map_err(err)?.into_iter().filter(|a| !a.server.is_empty() && !a.pass.is_empty()).collect();
+    let accounts: Vec<_> = config::accounts_with_passwords_in(&state.config).await.map_err(err)?.into_iter().filter(|a| !a.server.is_empty() && !a.pass.is_empty()).collect();
     let commands = &state.commands;
     let lists = futures_util::future::join_all(accounts.iter().map(|a| commands.list_folders(a))).await;
     let mut all: Vec<String> = lists.into_iter().filter_map(Result::ok).flatten().collect();
@@ -241,6 +241,19 @@ async fn trash_mail(state: State<'_, AppState>, id: String) -> Result<Archived, 
     state.store.remove(&account.id, uid);
     // Undone like an archived mail: found in the trash by its Message-ID.
     Ok(Archived { account_id: account.id, folder, message_id })
+}
+
+#[tauri::command]
+async fn set_window_form(app: AppHandle, form: String, side: String) -> Result<(), String> {
+    if !["popup", "sidebar"].contains(&form.as_str()) || !["auto", "left", "right"].contains(&side.as_str()) {
+        return Err(format!("unknown window form {form} / side {side}"));
+    }
+    let shared = app.state::<AppState>().config.clone();
+    let (f, s) = (form.clone(), side.clone());
+    async_runtime::spawn_blocking(move || config::set_window_form(&shared, &f, &s)).await.map_err(|e| e.to_string())?.map_err(err)?;
+    windows::set_pref(&app, windows::Form::parse(Some(&form)), windows::Side::parse(Some(&side)));
+    let _ = app.emit("settings-changed", ());
+    Ok(())
 }
 
 #[tauri::command]
@@ -269,7 +282,7 @@ struct TaskItem {
 #[tauri::command]
 async fn list_tasks(state: State<'_, AppState>) -> Result<Vec<TaskItem>, String> {
     let mut all = vec![];
-    for account in config::accounts_with_passwords().await.map_err(err)? {
+    for account in config::accounts_with_passwords_in(&state.config).await.map_err(err)? {
         if account.server.is_empty() || account.pass.is_empty() {
             continue;
         }
@@ -298,7 +311,7 @@ async fn list_tasks(state: State<'_, AppState>) -> Result<Vec<TaskItem>, String>
 /// Returns the target folder, so the move can be undone.
 #[tauri::command]
 async fn move_task(app: AppHandle, state: State<'_, AppState>, account_id: String, message_id: String, from: String, to: String, from_folder: Option<String>) -> Result<String, String> {
-    let account = account_by_id(&account_id).await?;
+    let account = account_by_id(&state, &account_id).await?;
     let source = match from_folder {
         Some(f) => f,
         None => state_folder(&state, &account, &from, false).await?.ok_or("Task folder not found")?,
@@ -345,7 +358,7 @@ struct InboxPage {
 async fn list_inbox(state: State<'_, AppState>, days: u32, account_id: Option<String>, folder: Option<String>) -> Result<InboxPage, String> {
     let days = days.clamp(1, 3650);
     let started = Instant::now();
-    let accounts: Vec<_> = config::accounts_with_passwords().await
+    let accounts: Vec<_> = config::accounts_with_passwords_in(&state.config).await
         .map_err(err)?
         .into_iter()
         .filter(|a| !a.server.is_empty() && !a.pass.is_empty() && account_id.as_ref().is_none_or(|id| *id == a.id))
@@ -389,7 +402,7 @@ async fn set_inbox_days(app: AppHandle, days: u32) -> Result<(), String> {
 /// Text of a task mail (it lives in one of the task folders).
 #[tauri::command]
 async fn get_task_mail(state: State<'_, AppState>, cache: State<'_, attachments::AttachmentCache>, account_id: String, message_id: String) -> Result<MailContent, String> {
-    let account = account_by_id(&account_id).await?;
+    let account = account_by_id(&state, &account_id).await?;
     let mut folders = vec![];
     for (status, _, _) in STATES {
         if let Some(f) = state_folder(&state, &account, status, false).await? {
@@ -403,7 +416,7 @@ async fn get_task_mail(state: State<'_, AppState>, cache: State<'_, attachments:
 /// Deletes the mail a code/link came from (code popup).
 #[tauri::command]
 async fn delete_mail(state: State<'_, AppState>, account_id: String, uid: u32) -> Result<(), String> {
-    let account = config::accounts_with_passwords().await
+    let account = config::accounts_with_passwords_in(&state.config).await
         .map_err(err)?
         .into_iter()
         .find(|a| a.id == account_id)
@@ -417,9 +430,12 @@ async fn delete_mail(state: State<'_, AppState>, account_id: String, uid: u32) -
 #[tauri::command]
 fn get_app_status(app: AppHandle, state: State<AppState>, statuses: State<status::StatusStore>, api: State<api::ApiServer>) -> serde_json::Value {
     let all = statuses.all();
-    let unread = state.store.snapshot().accounts;
-    let accounts: Vec<_> = config::get_accounts(&state.config)
-        .into_iter()
+    let unread = state.store.account_infos();
+    // One lock for everything read here: never fall back to defaults while a save holds it.
+    let cfg = state.config.blocking_lock();
+    let accounts: Vec<_> = cfg
+        .accounts
+        .iter()
         .map(|a| {
             let st = all.iter().find(|s| s.account_id == a.id);
             serde_json::json!({
@@ -441,11 +457,13 @@ fn get_app_status(app: AppHandle, state: State<AppState>, statuses: State<status
         "shortcut": app.state::<shortcut::ShortcutStatus>().get(),
         "notifications": state.notifications.load(std::sync::atomic::Ordering::Relaxed),
         "tray_people_only": state.tray_people_only.load(std::sync::atomic::Ordering::Relaxed),
-        "inbox_days": state.config.try_lock().ok().and_then(|c| c.inbox_days).unwrap_or(INBOX_DAYS),
-        "actions": state.config.try_lock().ok().and_then(|c| c.actions.clone()).unwrap_or_else(|| config::DEFAULT_ACTIONS.map(String::from).to_vec()),
+        "inbox_days": cfg.inbox_days.unwrap_or(INBOX_DAYS),
+        "actions": cfg.actions.clone().unwrap_or_else(|| config::DEFAULT_ACTIONS.map(String::from).to_vec()),
         "all_actions": config::ALL_ACTIONS,
-        "categories": categories(&state),
-        "mark_read_on_open": state.config.try_lock().ok().and_then(|c| c.mark_read_on_open).unwrap_or(true),
+        "categories": categories(&cfg),
+        "mark_read_on_open": cfg.mark_read_on_open.unwrap_or(true),
+        "window_form": cfg.window_form.clone().unwrap_or_else(|| "popup".into()),
+        "sidebar_side": cfg.sidebar_side.clone().unwrap_or_else(|| "auto".into()),
     })
 }
 
@@ -458,8 +476,9 @@ pub(crate) fn check_now_sync(app: &AppHandle) {
     app.state::<AppState>().check_now.notify_waiters();
 }
 
+/// Async: building a window in a synchronous command can block the main thread.
 #[tauri::command]
-fn open_window(app: AppHandle, label: String) {
+async fn open_window(app: AppHandle, label: String) {
     windows::show(&app, &label);
 }
 
@@ -574,7 +593,7 @@ async fn archive_mails(state: State<'_, AppState>, ids: Vec<String>) -> Result<V
 /// Brings archived mails back as unread.
 #[tauri::command]
 async fn unarchive_mails(state: State<'_, AppState>, items: Vec<Archived>) -> Result<usize, String> {
-    let accounts = config::accounts_with_passwords().await.map_err(err)?;
+    let accounts = config::accounts_with_passwords_in(&state.config).await.map_err(err)?;
     let mut groups: std::collections::BTreeMap<(String, String), Vec<String>> = Default::default();
     for item in items {
         if let Some(mid) = item.message_id {
@@ -700,7 +719,7 @@ async fn graph_sign_in_finish(app: AppHandle, label: String, account_id: Option<
             async_runtime::spawn_blocking(move || config::add_account(&shared, account)).await.map_err(|e| e.to_string())?.map_err(err)?
         }
     };
-    let all = config::accounts_with_passwords().await.map_err(err)?;
+    let all = config::accounts_with_passwords_in(&app.state::<AppState>().config).await.map_err(err)?;
     spawn_watchers(&app, all).await;
     Ok(accounts)
 }
@@ -712,7 +731,7 @@ async fn graph_sign_in_cancel() {
 
 #[tauri::command]
 async fn restart_imap(app: AppHandle) -> Result<(), String> {
-    let accounts = config::accounts_with_passwords().await.map_err(err)?;
+    let accounts = config::accounts_with_passwords_in(&app.state::<AppState>().config).await.map_err(err)?;
     spawn_watchers(&app, accounts).await;
     Ok(())
 }
@@ -837,14 +856,14 @@ async fn open_json_file(app: AppHandle) -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
-fn show_about(app: AppHandle) {
+async fn show_about(app: AppHandle) {
     windows::show(&app, "about");
 }
 
-/// Hides the calling window (Esc in About and Settings); closing only hides them anyway.
+/// Closes the calling window (Esc in About and Settings); it is built again when next opened.
 #[tauri::command]
 fn hide_window(window: tauri::WebviewWindow) {
-    let _ = window.hide();
+    let _ = window.close();
 }
 
 #[tauri::command]
@@ -875,11 +894,11 @@ async fn spawn_watchers(app: &AppHandle, accounts: Vec<AccountConfig>) {
 
     for account in accounts {
         if account.server.is_empty() || account.user.is_empty() {
-            status::set(app, &account.id, "error", "Server or username missing");
+            status::set(app, &account.id, "error", crate::base::i18n::t("acc.missing_server", &[]));
             continue;
         }
         if account.pass.is_empty() {
-            status::set(app, &account.id, "error", "No password stored – edit the account and enter it");
+            status::set(app, &account.id, "error", crate::base::i18n::t("acc.no_password", &[]));
             continue;
         }
         let label = account.label.clone();
@@ -915,14 +934,14 @@ async fn wait_for_keyring(app: AppHandle) {
     }
     let accounts = app.state::<AppState>().config.lock().await.accounts.clone();
     for account in &accounts {
-        status::set(&app, &account.id, "connecting", "Waiting for the keyring to be unlocked …");
+        status::set(&app, &account.id, "connecting", crate::base::i18n::t("acc.keyring_wait", &[]));
     }
     tracing::info!("Keyring is locked – waiting for it to be unlocked");
     while locked().await.unwrap_or(false) {
         tokio::time::sleep(Duration::from_secs(10)).await;
     }
     tracing::info!("Keyring unlocked – starting the watchers");
-    if let Ok(accounts) = config::accounts_with_passwords().await {
+    if let Ok(accounts) = config::accounts_with_passwords_in(&app.state::<AppState>().config).await {
         spawn_watchers(&app, accounts).await;
     }
     api::restart(app).await;
@@ -960,7 +979,7 @@ async fn run_with_reconnect(watch: Watch) {
         if failures == 1 {
             crate::base::notify::show(format!("Maillet – {label}"), crate::base::i18n::t("notify.failed", &[("e", &format!("{e:#}"))]));
         }
-        status::set(&app, &id, "error", format!("{e:#} – retrying in {}s", delay.as_secs()));
+        status::set(&app, &id, "error", crate::base::i18n::t("acc.retrying", &[("e", &format!("{e:#}")), ("s", &delay.as_secs().to_string())]));
         tokio::select! {
             _ = tokio::time::sleep(delay) => {}
             _ = watch.check.notified() => log::event(&app, &id, &label, "info", "Manual check – reconnecting now"),
@@ -1003,7 +1022,7 @@ fn tray_tooltip(app: &AppHandle) -> String {
 /// the servers whether a task folder holds any mail, not how many.
 async fn task_level(app: &AppHandle) -> u8 {
     let state = app.state::<AppState>();
-    let Ok(accounts) = config::accounts_with_passwords().await else { return 0 };
+    let Ok(accounts) = config::accounts_with_passwords_in(&state.config).await else { return 0 };
     let mut level = 0;
     for account in accounts.into_iter().filter(|a| !a.server.is_empty() && !a.pass.is_empty()) {
         for (status, rank) in [("progress", 2u8), ("open", 1)] {
@@ -1108,19 +1127,25 @@ pub fn run() {
         .manage(windows::MainWindowState::default())
         .manage(attachments::AttachmentCache::default())
         .invoke_handler(tauri::generate_handler![
-            list_mails, get_app_status, get_mail, set_seen, archive_mail, delete_mail, check_now, open_window, hide_main, set_notifications, set_tray_people_only, set_sender_kind, archive_mails, unarchive_mails, set_shortcut, get_i18n, set_language, get_appearance, set_appearance, set_pinned, make_task, list_tasks, list_inbox, set_inbox_days, move_task, file_mail, unfile_mail, set_categories, list_folders, list_account_folders, get_folder_mail, set_mark_read_on_open, trash_mail, set_actions, get_task_mail,
+            list_mails, get_app_status, get_mail, set_seen, archive_mail, delete_mail, check_now, open_window, hide_main, set_notifications, set_tray_people_only, set_sender_kind, archive_mails, unarchive_mails, set_shortcut, get_i18n, set_language, get_appearance, set_appearance, set_pinned, make_task, list_tasks, list_inbox, set_inbox_days, move_task, file_mail, unfile_mail, set_categories, list_folders, list_account_folders, get_folder_mail, set_mark_read_on_open, set_window_form, trash_mail, set_actions, get_task_mail,
             get_accounts, add_account, update_account, remove_account, graph_sign_in_start, graph_sign_in_finish, graph_sign_in_cancel, rename_tag, test_connection, restart_imap,
             get_status, get_log, clear_log,
             get_rules, save_rule, delete_rule, move_rule, export_rules, preview_import, apply_import, test_rule,
             get_default_rules, get_catalog, get_api_settings, set_api_settings, regenerate_api_token,
             save_json_file, open_json_file, attachments::view_attachment, attachments::save_attachment, show_about, hide_window, get_app_info,
-            popup::get_last_code, popup::copy_code, popup::open_link, popup::hide_code_popup, popup::resize_code_popup,
+            windows::pin_main, popup::get_last_code, popup::copy_code, popup::open_link, popup::hide_code_popup, popup::resize_code_popup,
         ])
         .setup(move |app| {
             // Copies of viewed attachments from the last run.
             attachments::cleanup();
             windows::create(app)?;
             let handle = app.handle().clone();
+            let (form, side) = {
+                let state = handle.state::<AppState>();
+                let cfg = state.config.blocking_lock();
+                (windows::Form::parse(cfg.window_form.as_deref()), windows::Side::parse(cfg.sidebar_side.as_deref()))
+            };
+            windows::set_pref(&handle, form, side);
             let keys = handle.state::<AppState>().config.blocking_lock().shortcut.clone();
             shortcut::register(&handle, keys);
             updates::check_in_background(&handle);

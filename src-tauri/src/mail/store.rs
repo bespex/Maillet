@@ -10,7 +10,7 @@ use tokio::sync::watch;
 
 use super::model::MailSummary;
 
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize)]
 pub struct AccountMails {
     pub account_id: String,
     pub account: String,
@@ -61,13 +61,16 @@ impl MailStore {
         self.version.send_modify(|v| *v += 1);
     }
 
-    /// Replaces the inbox list of an account after a mailbox check.
+    /// Replaces the inbox list of an account after a mailbox check. Tells tray and window only if
+    /// something changed: most checks (IDLE timeout every few minutes) find the same mails.
     pub fn set_account(&self, account_id: &str, account: &str, unread_total: usize, inbox_total: usize, mut mails: Vec<MailSummary>, mut pinned: Vec<MailSummary>) {
         mails.sort_by_key(|m| std::cmp::Reverse(m.uid));
         pinned.sort_by_key(|m| std::cmp::Reverse(m.uid));
         let entry = AccountMails { account_id: account_id.into(), account: account.into(), unread_total, inbox_total, mails, pinned };
-        self.accounts.lock().unwrap().insert(account_id.into(), entry);
-        self.changed();
+        let before = self.accounts.lock().unwrap().insert(account_id.into(), entry.clone());
+        if before.as_ref() != Some(&entry) {
+            self.changed();
+        }
     }
 
     /// Mails already known for an account, by UID – kept across checks with their findings.
@@ -155,6 +158,17 @@ impl MailStore {
         self.accounts.lock().unwrap().values().map(|a| a.unread_total).sum()
     }
 
+    /// Counts per account, sorted by name – without copying the mails.
+    pub fn account_infos(&self) -> Vec<AccountInfo> {
+        let accounts = self.accounts.lock().unwrap();
+        let mut infos: Vec<AccountInfo> = accounts
+            .values()
+            .map(|a| AccountInfo { account_id: a.account_id.clone(), account: a.account.clone(), unread_total: a.unread_total, inbox_total: a.inbox_total })
+            .collect();
+        infos.sort_by(|a, b| a.account.cmp(&b.account));
+        infos
+    }
+
     pub fn snapshot(&self) -> Snapshot {
         let accounts = self.accounts.lock().unwrap();
         let mut infos: Vec<AccountInfo> = accounts
@@ -199,6 +213,11 @@ mod tests {
         let store = MailStore::default();
         let mut rx = store.subscribe();
         store.set_account("a", "Arbeit", 5, 8, vec![mail("a", 1, 100), mail("a", 3, 300)], vec![]);
+        assert!(rx.has_changed().unwrap());
+        rx.mark_unchanged();
+        // The same mails again (a check without news): no event.
+        store.set_account("a", "Arbeit", 5, 8, vec![mail("a", 1, 100), mail("a", 3, 300)], vec![]);
+        assert!(!rx.has_changed().unwrap());
         store.set_account("p", "Privat", 1, 2, vec![mail("p", 9, 200)], vec![mail("p", 4, 50)]);
         assert_eq!(store.snapshot().pinned.len(), 1);
         assert!(store.find("p:1:4").is_some());

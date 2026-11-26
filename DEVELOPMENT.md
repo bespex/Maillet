@@ -22,9 +22,9 @@ Maillet is built in layers; dependencies only point downwards:
 
 ## Translations
 
-User-facing texts of the Maillet window, the tray menu, notifications and window titles live in `dist/i18n/<code>.json` (flat `key → text`, `{name}` placeholders). English (`en.json`) is the default and the fallback for missing keys; German (`de.json`) is available. The language is chosen under *Settings → General* and stored as `language` in `config.json`.
+User-facing texts of the Maillet window, the settings window (keys `set.*`, static texts marked with `data-t`, `data-t-html`, `data-t-title`, `data-t-ph`), the tray menu, notifications, account status lines and window titles live in `dist/i18n/<code>.json` (flat `key → text`, `{name}` placeholders, `_one` for the singular). English (`en.json`) is the default and the fallback for missing keys; German (`de.json`) is available. The language is chosen under *Settings → General* and stored as `language` in `config.json`.
 
-To add a language: copy `en.json` to `<code>.json`, translate the values, and add the file to `TABLES` in `src-tauri/src/base/i18n.rs`. A unit test checks that every table has the same keys. The settings window is still English-only.
+To add a language: copy `en.json` to `<code>.json`, translate the values, and add the file to `TABLES` in `src-tauri/src/base/i18n.rs`. A unit test checks that every table has the same keys.
 
 ## Building from Source
 
@@ -36,12 +36,14 @@ sudo apt install build-essential pkg-config \
   librsvg2-dev libssl-dev libdbus-1-dev
 
 git clone https://github.com/bespex/Maillet.git
-cd maillet/src-tauri
-cargo build --release
-./target/release/maillet
+cd Maillet
+./run.sh              # debug build of the working tree, then start it
+./run.sh --release    # optimized build, as packaged
 ```
 
 ### Tests
+
+In `src-tauri/`:
 
 ```bash
 cargo test                    # unit tests

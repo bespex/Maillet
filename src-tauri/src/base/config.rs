@@ -117,6 +117,12 @@ pub struct AppConfig {
     /// missing means [`DEFAULT_ACTIONS`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub actions: Option<Vec<String>>,
+    /// How the Maillet window opens, by tray click and shortcut alike: `popup` (missing) or `sidebar`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub window_form: Option<String>,
+    /// Edge of the sidebar: `auto` (missing: the half of the screen with the tray icon), `left`, `right`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sidebar_side: Option<String>,
     /// Opening a mail marks it as read; missing means on.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mark_read_on_open: Option<bool>,
@@ -182,12 +188,7 @@ fn config_path() -> Result<std::path::PathBuf> {
 /// needed (old config kept as config.json.bak).
 pub fn load_config() -> Result<AppConfig> {
     let path = config_path()?;
-    let mut config: AppConfig = if path.exists() {
-        let data = std::fs::read_to_string(&path)?;
-        serde_json::from_str(&data).unwrap_or_default()
-    } else {
-        AppConfig::default()
-    };
+    let mut config: AppConfig = if path.exists() { read_config(&path)? } else { AppConfig::default() };
 
     let rules_path = config_dir()?.join(RULES_FILE);
     if rules_path.exists() {
@@ -210,11 +211,59 @@ pub fn load_config() -> Result<AppConfig> {
     Ok(config)
 }
 
-fn save_config(config: &AppConfig) -> Result<()> {
-    let path = config_path()?;
-    let data = serde_json::to_string_pretty(config)?;
-    std::fs::write(&path, data)?;
+/// Reads config.json. An unreadable file is never overwritten: it is kept as `config.json.broken`
+/// and the previous version (`config.json.prev`, written by every save) takes its place; without
+/// one Maillet starts empty.
+fn read_config(path: &std::path::Path) -> Result<AppConfig> {
+    let parse = |p: &std::path::Path| -> Result<AppConfig> { Ok(serde_json::from_str(&std::fs::read_to_string(p)?)?) };
+    match parse(path) {
+        Ok(config) => Ok(config),
+        Err(e) => {
+            let broken = path.with_extension("json.broken");
+            std::fs::rename(path, &broken).context("Failed to set the unreadable config.json aside")?;
+            let prev = prev_path(path);
+            match parse(&prev) {
+                Ok(config) => {
+                    tracing::error!("config.json unreadable ({e:#}) – kept as {}, using the previous version", broken.display());
+                    write_atomic(path, serde_json::to_string_pretty(&config)?.as_bytes())?;
+                    Ok(config)
+                }
+                Err(_) => {
+                    tracing::error!("config.json unreadable ({e:#}) – kept as {}, starting without accounts", broken.display());
+                    Ok(AppConfig::default())
+                }
+            }
+        }
+    }
+}
+
+fn prev_path(path: &std::path::Path) -> std::path::PathBuf {
+    let mut name = path.file_name().unwrap_or_default().to_os_string();
+    name.push(".prev");
+    path.with_file_name(name)
+}
+
+/// Writes a file so that it is always either the old or the new content: into a temporary file,
+/// flushed to disk, then renamed over the old one. The old content stays as `<name>.prev`.
+pub(crate) fn write_atomic(path: &std::path::Path, data: &[u8]) -> Result<()> {
+    use std::io::Write;
+    let mut tmp_name = path.file_name().unwrap_or_default().to_os_string();
+    tmp_name.push(".tmp");
+    let tmp = path.with_file_name(tmp_name);
+    {
+        let mut f = std::fs::File::create(&tmp)?;
+        f.write_all(data)?;
+        f.sync_all()?;
+    }
+    if path.exists() {
+        std::fs::copy(path, prev_path(path)).context("Failed to keep the previous version")?;
+    }
+    std::fs::rename(&tmp, path)?;
     Ok(())
+}
+
+fn save_config(config: &AppConfig) -> Result<()> {
+    write_atomic(&config_path()?, serde_json::to_string_pretty(config)?.as_bytes())
 }
 
 fn save_rules(config: &AppConfig) -> Result<()> {
@@ -539,6 +588,13 @@ pub fn set_categories(config: &SharedConfig, categories: Vec<Category>) -> Resul
     save_config(&cfg)
 }
 
+pub fn set_window_form(config: &SharedConfig, form: &str, side: &str) -> Result<()> {
+    let mut cfg = config.blocking_lock();
+    cfg.window_form = (form != "popup").then(|| form.to_string());
+    cfg.sidebar_side = (side != "auto").then(|| side.to_string());
+    save_config(&cfg)
+}
+
 pub fn set_mark_read_on_open(config: &SharedConfig, on: bool) -> Result<()> {
     let mut cfg = config.blocking_lock();
     cfg.mark_read_on_open = Some(on);
@@ -614,7 +670,7 @@ pub fn get_accounts(config: &SharedConfig) -> Vec<AccountConfig> {
 }
 
 /// Load all accounts from config, injecting passwords from keyring.
-/// Blocking; async code uses [`accounts_with_passwords`].
+/// Blocking, at start; the running app uses [`accounts_with_passwords_in`].
 pub fn load_accounts_with_passwords() -> Result<Vec<AccountConfig>> {
     let mut accounts = load_config()?.accounts;
     for account in &mut accounts {
@@ -623,10 +679,20 @@ pub fn load_accounts_with_passwords() -> Result<Vec<AccountConfig>> {
     Ok(accounts)
 }
 
-/// [`load_accounts_with_passwords`] for async code.
-pub async fn accounts_with_passwords() -> Result<Vec<AccountConfig>> {
-    off_thread(load_accounts_with_passwords).await
+/// The accounts of the running app (kept in memory) with their passwords – without reading
+/// config.json and rules.json again on every mail action. Secrets come from the in-memory cache
+/// after the first read.
+pub async fn accounts_with_passwords_in(config: &SharedConfig) -> Result<Vec<AccountConfig>> {
+    let mut accounts = config.lock().await.accounts.clone();
+    off_thread(move || {
+        for account in &mut accounts {
+            account.pass = load_password(&account.id).unwrap_or_default();
+        }
+        Ok(accounts)
+    })
+    .await
 }
+
 
 /// Fills in the stored password if the dialog left it blank (existing account).
 pub fn with_stored_password(mut account: AccountConfig) -> Result<AccountConfig> {
@@ -639,6 +705,45 @@ pub fn with_stored_password(mut account: AccountConfig) -> Result<AccountConfig>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("maillet-test-{name}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn test_writes_atomically_and_keeps_the_previous_version() {
+        let dir = temp_dir("atomic");
+        let path = dir.join("config.json");
+        write_atomic(&path, br#"{"accounts":[{"id":"a","label":"Eins","server":"s","port":993,"user":"u","mailbox":"INBOX"}]}"#).unwrap();
+        write_atomic(&path, br#"{"accounts":[]}"#).unwrap();
+        assert!(read_config(&path).unwrap().accounts.is_empty());
+        assert_eq!(read_config(&prev_path(&path)).unwrap().accounts[0].label, "Eins");
+        assert!(!dir.join("config.json.tmp").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_an_unreadable_config_is_kept_and_the_previous_one_used() {
+        let dir = temp_dir("broken");
+        let path = dir.join("config.json");
+        write_atomic(&path, br#"{"accounts":[{"id":"a","label":"Eins","server":"s","port":993,"user":"u","mailbox":"INBOX"}]}"#).unwrap();
+        write_atomic(&path, br#"{"accounts":[{"id":"a","label":"Zwei","server":"s","port":993,"user":"u","mailbox":"INBOX"}]}"#).unwrap();
+        std::fs::write(&path, "{ kaputt").unwrap();
+        assert_eq!(read_config(&path).unwrap().accounts[0].label, "Eins", "the previous version");
+        assert_eq!(std::fs::read_to_string(dir.join("config.json.broken")).unwrap(), "{ kaputt");
+        assert_eq!(read_config(&path).unwrap().accounts[0].label, "Eins", "and in place again");
+
+        // Without a previous version: empty, but the broken file stays for repair.
+        let lone = temp_dir("lone").join("config.json");
+        std::fs::write(&lone, "{ kaputt").unwrap();
+        assert!(read_config(&lone).unwrap().accounts.is_empty());
+        assert!(lone.with_extension("json.broken").exists());
+        let _ = std::fs::remove_dir_all(&dir);
+        let _ = std::fs::remove_dir_all(lone.parent().unwrap());
+    }
 
     #[test]
     fn test_ignores_removed_sender_filter() {

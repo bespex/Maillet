@@ -121,7 +121,7 @@ pub async fn test_connection(account: &AccountConfig) -> Result<String> {
         .await
         .with_context(|| format!("Login OK, but mailbox '{}' not found", account.mailbox))?;
     session.logout().await.ok();
-    Ok(format!("Connected – {} mails in {}", mailbox.exists, account.mailbox))
+    Ok(crate::base::i18n::t("acc.test_imap", &[("n", &mailbox.exists.to_string()), ("box", &account.mailbox)]))
 }
 
 // ---------------------------------------------------------------- Watcher
@@ -146,7 +146,7 @@ pub async fn run_watcher(w: &Watch) -> Result<()> {
         return super::graph::shared().run_watcher(w).await;
     }
     let account = &w.account;
-    status::set(&w.app, &account.id, "connecting", format!("Connecting to {}…", account.server));
+    status::set(&w.app, &account.id, "connecting", crate::base::i18n::t("acc.connecting", &[("server", &account.server)]));
     log::event(&w.app, &account.id, &account.label, "info", format!("Connecting to {}:{}", account.server, account.port));
 
     let mut session = connect(account).await?;
@@ -258,7 +258,7 @@ async fn sync(session: &mut Session, w: &Watch, uid_validity: u32) -> Result<()>
     let pinned_mails: Vec<MailSummary> = pinned.iter().filter_map(pick).collect();
     w.store.set_account(&account.id, &account.label, total, inbox_total, mails, pinned_mails);
 
-    let message = format!("Connected – {inbox_total} in the inbox, {total} unread");
+    let message = crate::base::i18n::t("acc.connected", &[("n", &inbox_total.to_string()), ("u", &total.to_string())]);
     status::set(&w.app, &account.id, "ok", message);
     if !fresh.is_empty() {
         let message = format!("Mailbox checked – {} new after {} ms", fresh.len(), started.elapsed().as_millis());
@@ -1016,7 +1016,7 @@ mod tests {
         cmds.move_found(&account, &[folder.clone(), progress.clone()], &mid, Some(&folder)).await.unwrap();
         assert_eq!(cmds.folder_mails(&account, &folder, 100).await.unwrap().len(), 1);
         // Already in the target: success without moving.
-        cmds.move_found(&account, &[progress.clone()], &mid, Some(&folder)).await.unwrap();
+        cmds.move_found(&account, std::slice::from_ref(&progress), &mid, Some(&folder)).await.unwrap();
         let text = cmds.content_by_message_id(&account, vec!["Tasks".into(), "INBOX".into()], &mid).await.unwrap().text;
         assert!(text.contains("drei Rückfragen"));
 

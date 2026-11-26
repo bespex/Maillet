@@ -31,8 +31,7 @@ pub fn load(path: &Path) -> Result<Vec<DetectionRule>> {
 
 pub fn save(path: &Path, rules: &[DetectionRule]) -> Result<()> {
     let file = RuleFile { version: RULES_VERSION, rules: rules.to_vec() };
-    std::fs::write(path, serde_json::to_string_pretty(&file)?)?;
-    Ok(())
+    crate::base::config::write_atomic(path, serde_json::to_string_pretty(&file)?.as_bytes())
 }
 
 /// Lowercase ASCII slug of `label`, numbered if already taken: `gmail`, `gmail-2`.

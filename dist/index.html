@@ -19,8 +19,21 @@ h1 { font-size:18px; font-weight:650; }
 /* Layout: fixed sidebar, scrolling content */
 .app { display:grid; grid-template-columns:212px 1fr; height:100%; }
 .sidebar { background:var(--sx-surface); border-right:1px solid var(--sx-line); display:flex; flex-direction:column; padding:16px 10px; gap:2px; }
-.brand { font-size:17px; font-weight:650; padding:0 10px 14px; }
+/* Settings frame shared with Tasqlet (kit PLAN K9): app mark and name, sections, page title, one card
+   per setting with the short control at the right of its title (.card-head), never a native select
+   for two to four choices (.seg). */
+.brand { display:flex; align-items:center; gap:10px; font-size:16px; font-weight:650; line-height:1.2; padding:0 8px 14px; }
+.brand img { width:28px; height:28px; flex:none; }
 .brand small { display:block; font-size:11.5px; font-weight:400; color:var(--sx-ink-2); }
+.card-head, .card-sub { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.card-head .card-title { margin:0; }
+.card-sub { margin-top:12px; font-size:13px; }
+.seg { display:inline-flex; }
+.seg button { border-radius:0; margin-left:-1px; padding:6px 12px; }
+.seg button:first-child { border-radius:var(--sx-radius-m) 0 0 var(--sx-radius-m); margin-left:0; }
+.seg button:last-child { border-radius:0 var(--sx-radius-m) var(--sx-radius-m) 0; }
+.seg button.on { background:var(--sx-accent-soft); color:var(--sx-accent-ink); border-color:var(--sx-accent); position:relative; z-index:1; font-weight:650; }
+.inline { display:inline-flex; align-items:center; gap:8px; }
 .nav-btn { display:flex; align-items:center; gap:8px; width:100%; text-align:left; background:none; border:none; border-radius:var(--sx-radius-m); padding:8px 10px; color:var(--sx-ink-2); font-weight:550; }
 .nav-btn:hover { background:var(--sx-field); color:var(--sx-ink); border-color:transparent; }
 .nav-btn.on { background:var(--sx-accent-soft); color:var(--sx-accent-ink); }
@@ -75,7 +88,7 @@ label.check input { width:auto; }
 .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
 .grid-port { display:grid; grid-template-columns:1fr 100px; gap:0 12px; }
 .grid-code { display:grid; grid-template-columns:200px 1fr; gap:0 10px; }
-.hint { font-size:11.5px; color:var(--sx-ink-2); margin-top:3px; }
+.hint { font-size:12px; color:var(--sx-ink-2); margin-top:4px; }
 .hint code, .mono { font-family:ui-monospace,"JetBrains Mono",monospace; }
 a { color:var(--sx-accent-ink); }
 .hint code { background:var(--sx-accent-soft); padding:0 4px; border-radius:var(--sx-radius-s); color:var(--sx-ink); }
@@ -245,17 +258,17 @@ sx-appearance::part(label) { margin:18px 0 8px; font-size:14px; font-weight:650;
 <div class="app">
 
 <aside class="sidebar">
-  <div class="brand">Maillet<small>Settings</small></div>
-  <button class="nav-btn" data-sec="general" onclick="go('general')">General</button>
-  <button class="nav-btn" data-sec="theme" onclick="go('theme')">Theme</button>
-  <button class="nav-btn" data-sec="actions" onclick="go('actions')">Actions</button>
-  <button class="nav-btn" data-sec="accounts" onclick="go('accounts')">Accounts <span class="badge dot" id="dot-accounts"></span></button>
-  <button class="nav-btn" data-sec="notifications" onclick="go('notifications')">Notifications</button>
-  <button class="nav-btn" data-sec="otp" onclick="go(otpTab)">One-Time Passwords <span class="badge" id="badge-rules"></span><span class="badge dot" id="api-dot" title="Local API"></span></button>
-  <button class="nav-btn" data-sec="log" onclick="go('log')">Log</button>
+  <div class="brand"><img src="icon.png" alt=""><span data-t-html="set.nav.maillet_settings">Maillet<small>Settings</small></span></div>
+  <button class="nav-btn" data-sec="general" onclick="go('general')" data-t="set.nav.general">General</button>
+  <button class="nav-btn" data-sec="theme" onclick="go('theme')" data-t="set.nav.theme">Theme</button>
+  <button class="nav-btn" data-sec="actions" onclick="go('actions')" data-t="set.nav.actions">Actions</button>
+  <button class="nav-btn" data-sec="accounts" onclick="go('accounts')"><span data-t="set.nav.accounts">Accounts</span> <span class="badge dot" id="dot-accounts"></span></button>
+  <button class="nav-btn" data-sec="notifications" onclick="go('notifications')" data-t="set.nav.notifications">Notifications</button>
+  <button class="nav-btn" data-sec="otp" onclick="go(otpTab)"><span data-t="set.nav.one_time_passwords">One-Time Passwords</span> <span class="badge" id="badge-rules"></span><span class="badge dot" id="api-dot" title="Local API" data-t-title="set.nav.local_api"></span></button>
+  <button class="nav-btn" data-sec="log" onclick="go('log')" data-t="set.nav.log">Log</button>
   <div class="sidebar-foot">
-    <button class="btn-sm" onclick="invoke('check_now').then(() => showToast('Checking…', 'success'))">Check now</button>
-    <button class="btn-sm" onclick="invoke('show_about')">About</button>
+    <button class="btn-sm" onclick="invoke('check_now').then(() => showToast(t('set.js.checking'), 'success'))" data-t="set.nav.check_now">Check now</button>
+    <button class="btn-sm" onclick="invoke('show_about')" data-t="set.nav.about">About</button>
   </div>
 </aside>
 
@@ -265,115 +278,115 @@ sx-appearance::part(label) { margin:18px 0 8px; font-size:14px; font-weight:650;
 <section class="section" data-sec="accounts">
   <div id="accounts-list-view">
     <div class="page-head">
-      <h1>Accounts</h1>
+      <h1 data-t="set.nav.accounts">Accounts</h1>
       <div class="btn-bar">
-        <button onclick="restartImap().then(() => showToast('Reconnecting…', 'success'))">Reconnect all</button>
-        <button class="btn-primary" onclick="openAccount(null)">+ Add account</button>
+        <button onclick="restartImap().then(() => showToast(t('set.js.reconnecting'), 'success'))" data-t="set.accounts.reconnect_all">Reconnect all</button>
+        <button class="btn-primary" onclick="openAccount(null)" data-t="set.accounts.add_account">+ Add account</button>
       </div>
     </div>
     <div id="account-list"></div>
   </div>
 
   <div id="accounts-detail-view" style="display:none">
-    <button class="back" onclick="closeAccount()">← Accounts</button>
-    <div class="page-head"><h1 id="acc-title">Add account</h1></div>
+    <button class="back" onclick="closeAccount()" data-t="set.accounts.accounts">← Accounts</button>
+    <div class="page-head"><h1 id="acc-title" data-t="set.accounts.add_account_2">Add account</h1></div>
     <div class="card">
       <div class="grid-2">
         <div class="form-group">
-          <label>Account type</label>
+          <label data-t="set.accounts.account_type">Account type</label>
           <select id="f-kind" onchange="onKindChange()">
-            <option value="imap">IMAP – Gmail, Proton Bridge, most providers</option>
-            <option value="graph">Microsoft 365 / Outlook.com</option>
+            <option value="imap" data-t="set.accounts.imap_gmail_proton_bridge">IMAP – Gmail, Proton Bridge, most providers</option>
+            <option value="graph" data-t="set.accounts.microsoft_365_outlook_com">Microsoft 365 / Outlook.com</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Display name</label>
-          <input id="f-label" placeholder="e.g. Gmail">
+          <label data-t="set.accounts.display_name">Display name</label>
+          <input id="f-label" placeholder="e.g. Gmail" data-t-ph="set.accounts.e_g_gmail">
         </div>
       </div>
       <div id="graph-fields" style="display:none">
         <div class="grid-2">
           <div class="form-group">
-            <label>Application (client) ID</label>
+            <label data-t="set.accounts.application_client_id">Application (client) ID</label>
             <input id="f-client-id" class="mono" placeholder="00000000-0000-0000-0000-000000000000" autocomplete="off">
           </div>
           <div class="form-group">
-            <label>Accounts</label>
+            <label data-t="set.nav.accounts">Accounts</label>
             <select id="f-tenant">
-              <option value="organizations">Work or school (Microsoft 365)</option>
-              <option value="common">Work, school or personal</option>
-              <option value="consumers">Personal (Outlook.com, Hotmail)</option>
+              <option value="organizations" data-t="set.accounts.work_or_school_microsoft">Work or school (Microsoft 365)</option>
+              <option value="common" data-t="set.accounts.work_school_or_personal">Work, school or personal</option>
+              <option value="consumers" data-t="set.accounts.personal_outlook_com_hotmail">Personal (Outlook.com, Hotmail)</option>
             </select>
           </div>
         </div>
-        <div class="hint" style="margin:-6px 0 12px">Maillet reads mail through Microsoft Graph with your own app registration – see <button class="link" onclick="invoke('open_link', { url: 'https://github.com/be-spex/Maillet/blob/main/docs/outlook.md' })">docs/outlook.md</button>. Whether you may allow it yourself is decided by your organisation: if Microsoft asks for <i>admin approval</i>, it is not allowed without your IT.</div>
+        <div class="hint" style="margin:-6px 0 12px" data-t-html="set.accounts.maillet_reads_mail_through">Maillet reads mail through Microsoft Graph with your own app registration – see <button class="link" onclick="invoke('open_link', { url: 'https://github.com/be-spex/Maillet/blob/main/docs/outlook.md' })">docs/outlook.md</button>. Whether you may allow it yourself is decided by your organisation: if Microsoft asks for <i>admin approval</i>, it is not allowed without your IT.</div>
         <div class="graph-signin">
           <div id="g-signed" class="hint"></div>
-          <button class="btn-primary" id="g-start" onclick="graphSignIn()">Sign in with Microsoft</button>
+          <button class="btn-primary" id="g-start" onclick="graphSignIn()" data-t="set.accounts.sign_in_with_microsoft">Sign in with Microsoft</button>
           <div id="g-code" style="display:none"></div>
         </div>
       </div>
       <div id="imap-fields">
       <div class="grid-port">
         <div class="form-group">
-          <label>IMAP server</label>
-          <input id="f-server" placeholder="imap.example.com">
+          <label data-t="set.accounts.imap_server">IMAP server</label>
+          <input id="f-server" placeholder="imap.example.com" data-t-ph="set.accounts.imap_example_com">
         </div>
         <div class="form-group">
-          <label>Port</label>
+          <label data-t="set.accounts.port">Port</label>
           <input id="f-port" type="number" value="993">
         </div>
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label>Encryption</label>
+          <label data-t="set.accounts.encryption">Encryption</label>
           <select id="f-security" onchange="onSecurityChange()">
-            <option value="ssl">SSL/TLS (port 993)</option>
-            <option value="starttls">STARTTLS (port 143)</option>
+            <option value="ssl" data-t="set.accounts.ssl_tls_port_993">SSL/TLS (port 993)</option>
+            <option value="starttls" data-t="set.accounts.starttls_port_143">STARTTLS (port 143)</option>
           </select>
         </div>
         <div class="form-group">
           <label>&nbsp;</label>
-          <label class="check"><input type="checkbox" id="f-invalid-certs"> Accept self-signed certificate</label>
+          <label class="check"><input type="checkbox" id="f-invalid-certs"> <span data-t="set.accounts.accept_self_signed_certificate">Accept self-signed certificate</span></label>
         </div>
       </div>
-      <div class="hint" style="margin:-6px 0 12px">Proton Mail Bridge: server <code>127.0.0.1</code>, port <code>1143</code>, STARTTLS, accept self-signed certificate, and the bridge password shown in the Bridge app. Codes arrive up to ~40&nbsp;s late – the Bridge polls Proton only every 20–40&nbsp;s.</div>
+      <div class="hint" style="margin:-6px 0 12px" data-t-html="set.accounts.proton_mail_bridge_server">Proton Mail Bridge: server <code>127.0.0.1</code>, port <code>1143</code>, STARTTLS, accept self-signed certificate, and the bridge password shown in the Bridge app. Codes arrive up to ~40&nbsp;s late – the Bridge polls Proton only every 20–40&nbsp;s.</div>
       <div class="grid-2">
         <div class="form-group">
-          <label>Username</label>
-          <input id="f-user" placeholder="user@example.com" autocomplete="off">
+          <label data-t="set.accounts.username">Username</label>
+          <input id="f-user" placeholder="user@example.com" autocomplete="off" data-t-ph="set.accounts.user_example_com">
         </div>
         <div class="form-group">
-          <label>Password <small>(system keyring)</small></label>
+          <label data-t-html="set.accounts.password_system_keyring">Password <small>(system keyring)</small></label>
           <input id="f-pass" type="password" autocomplete="new-password">
         </div>
       </div>
       <div class="grid-2">
         <div class="form-group">
-          <label>Mailbox</label>
+          <label data-t="set.accounts.mailbox">Mailbox</label>
           <input id="f-mailbox" value="INBOX">
         </div>
       </div>
       </div>
       <div class="form-actions" id="acc-actions">
-        <button class="left" onclick="testConnection()">Test connection</button>
-        <button onclick="closeAccount()">Cancel</button>
-        <button class="btn-primary" onclick="saveAccount()">Save</button>
+        <button class="left" onclick="testConnection()" data-t="set.accounts.test_connection">Test connection</button>
+        <button onclick="closeAccount()" data-t="set.accounts.cancel">Cancel</button>
+        <button class="btn-primary" onclick="saveAccount()" data-t="set.accounts.save">Save</button>
       </div>
       <div class="test-conn" id="test-conn"></div>
     </div>
 
     <div class="card" id="acc-tag-card">
-      <div class="head"><h3>Tag</h3><button class="link" id="acc-rules-link"></button></div>
+      <div class="head"><h3 data-t="set.accounts.tag">Tag</h3><button class="link" id="acc-rules-link"></button></div>
       <div class="token-row">
         <input id="f-tag" class="mono">
-        <button class="btn-sm" onclick="renameTag()">Rename</button>
+        <button class="btn-sm" onclick="renameTag()" data-t="set.accounts.rename">Rename</button>
       </div>
-      <div class="hint">Rules are assigned to this account by its tag. It stays the same when the account is renamed; renaming it here moves all its rules along.</div>
+      <div class="hint" data-t="set.accounts.rules_are_assigned_to">Rules are assigned to this account by its tag. It stays the same when the account is renamed; renaming it here moves all its rules along.</div>
     </div>
 
     <div class="form-actions" id="acc-delete-bar">
-      <button class="btn-danger btn-sm" onclick="deleteAccount()">Delete account</button>
+      <button class="btn-danger btn-sm" onclick="deleteAccount()" data-t="set.accounts.delete_account">Delete account</button>
     </div>
   </div>
 </section>
@@ -381,43 +394,43 @@ sx-appearance::part(label) { margin:18px 0 8px; font-size:14px; font-weight:650;
 <!-- ======== Rules ======== -->
 <section class="section" data-sec="rules">
   <div id="rules-list-view">
-    <h1 class="otp-title">One-Time Passwords</h1>
+    <h1 class="otp-title" data-t="set.nav.one_time_passwords">One-Time Passwords</h1>
     <div class="page-head">
-      <div class="tabs"><button class="tab" data-tab="rules" onclick="go('rules')">Rules</button><button class="tab" data-tab="catalog" onclick="go('catalog')">Catalog</button><button class="tab" data-tab="api" onclick="go('api')">API</button></div>
+      <div class="tabs"><button class="tab" data-tab="rules" onclick="go('rules')" data-t="set.rules.rules">Rules</button><button class="tab" data-tab="catalog" onclick="go('catalog')" data-t="set.rules.catalog">Catalog</button><button class="tab" data-tab="api" onclick="go('api')" data-t="set.rules.api">API</button></div>
       <div class="btn-bar">
-        <button onclick="openImport()">Import…</button>
+        <button onclick="openImport()" data-t="set.rules.import">Import…</button>
         <details class="menu" id="export-menu">
-          <summary id="export-summary">Export ▾</summary>
+          <summary id="export-summary" data-t="set.rules.export">Export ▾</summary>
           <div class="menu-items">
-            <button onclick="exportShown('copy')">Copy to clipboard</button>
-            <button onclick="exportShown('file')">Save as file…</button>
+            <button onclick="exportShown('copy')" data-t="set.rules.copy_to_clipboard">Copy to clipboard</button>
+            <button onclick="exportShown('file')" data-t="set.rules.save_as_file">Save as file…</button>
           </div>
         </details>
-        <button class="btn-primary" onclick="openRule(null)">+ New rule</button>
+        <button class="btn-primary" onclick="openRule(null)" data-t="set.rules.new_rule">+ New rule</button>
       </div>
     </div>
     <div class="toolbar">
-      <input id="rule-filter" placeholder="🔍 Filter by name, sender, subject…" oninput="renderRuleList()">
+      <input id="rule-filter" placeholder="🔍 Filter by name, sender, subject…" oninput="renderRuleList()" data-t-ph="set.rules.filter_by_name_sender">
       <select id="rule-account" onchange="renderRuleList()"></select>
     </div>
     <div id="rule-list"></div>
-    <p class="hint" style="margin-top:8px">Rules are checked from top to bottom; the first match wins. An account without rules uses the built-in rule <code>{code} is your verification code</code>.</p>
+    <p class="hint" style="margin-top:8px" data-t-html="set.rules.rules_are_checked_from">Rules are checked from top to bottom; the first match wins. An account without rules uses the built-in rule <code>{code} is your verification code</code>.</p>
   </div>
 
   <div id="rules-detail-view" style="display:none">
-    <button class="back" onclick="closeRule()">← Rules</button>
-    <div class="page-head"><h1 id="rule-title">New rule</h1></div>
+    <button class="back" onclick="closeRule()" data-t="set.rules.rules_2">← Rules</button>
+    <div class="page-head"><h1 id="rule-title" data-t="set.rules.new_rule_2">New rule</h1></div>
     <div id="rule-editor"></div>
   </div>
 
   <div id="rules-import-view" style="display:none">
-    <button class="back" onclick="closeImport()">← Rules</button>
-    <div class="page-head"><h1>Import rules</h1></div>
+    <button class="back" onclick="closeImport()" data-t="set.rules.rules_2">← Rules</button>
+    <div class="page-head"><h1 data-t="set.rules.import_rules">Import rules</h1></div>
     <div class="card">
       <div class="form-group">
-        <label>Rules as JSON <small>(from an Maillet export)</small></label>
-        <textarea id="import-json" class="mono" rows="6" placeholder='Paste here, e.g. { "type": "maillet-rules", "version": 1, "rules": [ … ] }' oninput="previewImport()"></textarea>
-        <div class="hint">Or <button class="link" onclick="importFromFile()">choose a file…</button> Rules with the same name are updated; their accounts, active state and position stay as they are.</div>
+        <label data-t-html="set.rules.rules_as_json_from">Rules as JSON <small>(from an Maillet export)</small></label>
+        <textarea id="import-json" class="mono" rows="6" placeholder='Paste here, e.g. { "type": "maillet-rules", "version": 1, "rules": [ … ] }' oninput="previewImport()" data-t-ph="set.rules.paste_here_e_g"></textarea>
+        <div class="hint" data-t-html="set.rules.or_choose_a_file">Or <button class="link" onclick="importFromFile()">choose a file…</button> Rules with the same name are updated; their accounts, active state and position stay as they are.</div>
       </div>
       <div id="import-preview"></div>
     </div>
@@ -426,11 +439,11 @@ sx-appearance::part(label) { margin:18px 0 8px; font-size:14px; font-weight:650;
 
 <!-- ======== Catalog ======== -->
 <section class="section" data-sec="catalog">
-  <h1 class="otp-title">One-Time Passwords</h1>
-  <div class="page-head"><div class="tabs"><button class="tab" data-tab="rules" onclick="go('rules')">Rules</button><button class="tab" data-tab="catalog" onclick="go('catalog')">Catalog</button><button class="tab" data-tab="api" onclick="go('api')">API</button></div></div>
-  <div class="hint" style="margin:-6px 0 12px">Preconfigured rules for common services, loaded from the <a href="#" onclick="invoke('open_link',{url:CATALOG_PAGE});return false">Maillet catalog on GitHub</a>. <b>+</b> adds the rules of the selected language for all accounts, <b>▾</b> lets you pick accounts. They then appear under Rules.</div>
+  <h1 class="otp-title" data-t="set.nav.one_time_passwords">One-Time Passwords</h1>
+  <div class="page-head"><div class="tabs"><button class="tab" data-tab="rules" onclick="go('rules')" data-t="set.rules.rules">Rules</button><button class="tab" data-tab="catalog" onclick="go('catalog')" data-t="set.rules.catalog">Catalog</button><button class="tab" data-tab="api" onclick="go('api')" data-t="set.rules.api">API</button></div></div>
+  <div class="hint" style="margin:-6px 0 12px" data-t-html="set.catalog.preconfigured_rules_for_common">Preconfigured rules for common services, loaded from the <a href="#" onclick="invoke('open_link',{url:CATALOG_PAGE});return false">Maillet catalog on GitHub</a>. <b>+</b> adds the rules of the selected language for all accounts, <b>▾</b> lets you pick accounts. They then appear under Rules.</div>
   <div class="catalog-bar">
-    <input id="cat-filter" placeholder="Filter by name, e.g. Spotify" oninput="renderCatalog()">
+    <input id="cat-filter" placeholder="Filter by name, e.g. Spotify" oninput="renderCatalog()" data-t-ph="set.catalog.filter_by_name_e">
     <select id="cat-lang" onchange="renderCatalog()"></select>
   </div>
   <div class="hint" id="cat-offline" style="margin-bottom:8px"></div>
@@ -439,137 +452,143 @@ sx-appearance::part(label) { margin:18px 0 8px; font-size:14px; font-weight:650;
 
 <!-- ======== API ======== -->
 <section class="section" data-sec="api">
-  <h1 class="otp-title">One-Time Passwords</h1>
-  <div class="page-head"><div class="tabs"><button class="tab" data-tab="rules" onclick="go('rules')">Rules</button><button class="tab" data-tab="catalog" onclick="go('catalog')">Catalog</button><button class="tab" data-tab="api" onclick="go('api')">API</button></div></div>
+  <h1 class="otp-title" data-t="set.nav.one_time_passwords">One-Time Passwords</h1>
+  <div class="page-head"><div class="tabs"><button class="tab" data-tab="rules" onclick="go('rules')" data-t="set.rules.rules">Rules</button><button class="tab" data-tab="catalog" onclick="go('catalog')" data-t="set.rules.catalog">Catalog</button><button class="tab" data-tab="api" onclick="go('api')" data-t="set.rules.api">API</button></div></div>
   <div class="card">
     <div id="api-status" style="margin-bottom:10px"></div>
-    <p class="hint" style="margin-bottom:14px">Local HTTP endpoint to show codes and links from outside, e.g. from a Tampermonkey script. Listens on <code>127.0.0.1</code> only; every request needs the token.</p>
+    <p class="hint" style="margin-bottom:14px" data-t-html="set.api.local_http_endpoint_to">Local HTTP endpoint to show codes and links from outside, e.g. from a Tampermonkey script. Listens on <code>127.0.0.1</code> only; every request needs the token.</p>
     <div class="grid-2">
       <div class="form-group">
         <label>&nbsp;</label>
-        <label class="check"><input type="checkbox" id="api-enabled"> Enable API server</label>
+        <label class="check"><input type="checkbox" id="api-enabled"> <span data-t="set.api.enable_api_server">Enable API server</span></label>
       </div>
       <div class="form-group">
-        <label>Port</label>
+        <label data-t="set.accounts.port">Port</label>
         <input id="api-port" type="number" min="1024" max="65535" value="6870">
       </div>
     </div>
     <div class="form-group">
-      <label>Token <small>(header <code>X-Maillet-Token</code>, stored in system keyring)</small></label>
+      <label data-t-html="set.api.token_header_x_maillet">Token <small>(header <code>X-Maillet-Token</code>, stored in system keyring)</small></label>
       <div class="token-row">
         <input id="api-token" class="mono" type="password" readonly>
-        <button class="btn-sm" onclick="toggleToken()" id="api-token-show">Show</button>
-        <button class="btn-sm" onclick="copyText(apiToken, 'Token copied')">Copy</button>
-        <button class="btn-sm btn-danger" onclick="regenerateToken()">Regenerate</button>
+        <button class="btn-sm" onclick="toggleToken()" id="api-token-show" data-t="set.api.show">Show</button>
+        <button class="btn-sm" onclick="copyText(apiToken, t('set.js.token_copied'))" data-t="set.api.copy">Copy</button>
+        <button class="btn-sm btn-danger" onclick="regenerateToken()" data-t="set.api.regenerate">Regenerate</button>
       </div>
     </div>
     <div class="form-group">
-      <label>Allowed links <small>(for <code>/api/otp/link</code>)</small></label>
+      <label data-t-html="set.api.allowed_links_for_api">Allowed links <small>(for <code>/api/otp/link</code>)</small></label>
       <div id="api-links"></div>
-      <button class="btn-sm" onclick="addAllowedLink()">+ Add link</button>
-      <div class="hint">Only links starting with one of these are shown, e.g. <code>https://claude.ai/magic-link</code>. Empty list = any <code>https://</code> link is accepted.</div>
+      <button class="btn-sm" onclick="addAllowedLink()" data-t="set.api.add_link">+ Add link</button>
+      <div class="hint" data-t-html="set.api.only_links_starting_with">Only links starting with one of these are shown, e.g. <code>https://claude.ai/magic-link</code>. Empty list = any <code>https://</code> link is accepted.</div>
     </div>
     <div class="form-actions">
-      <button class="btn-primary" onclick="saveApi()">Save &amp; apply</button>
+      <button class="btn-primary" onclick="saveApi()" data-t="set.api.save_amp_apply">Save &amp; apply</button>
     </div>
   </div>
 
   <div class="card">
-    <div class="head"><h3>Endpoints</h3></div>
+    <div class="head"><h3 data-t="set.api.endpoints">Endpoints</h3></div>
     <div class="info">
       <dt>Code</dt><dd><code class="mono">POST /api/otp/code</code> <span class="dim">{"code": "…", "ruleName": "…"}</span></dd>
       <dt>Link</dt><dd><code class="mono">POST /api/otp/link</code> <span class="dim">{"link": "…", "ruleName": "…"}</span></dd>
     </div>
-    <div class="head" style="margin-top:14px"><h3>Tampermonkey example</h3><button class="btn-sm" onclick="copyText(document.getElementById('api-example').textContent, 'Example copied')">Copy</button></div>
+    <div class="head" style="margin-top:14px"><h3 data-t="set.api.tampermonkey_example">Tampermonkey example</h3><button class="btn-sm" onclick="copyText(document.getElementById('api-example').textContent, t('set.js.example_copied'))" data-t="set.api.copy">Copy</button></div>
     <pre id="api-example" class="example"></pre>
   </div>
 </section>
 
 <!-- ======== General ======== -->
 <section class="section" data-sec="general">
-  <div class="page-head"><h1>General</h1></div>
+  <div class="page-head"><h1 data-t="set.nav.general">General</h1></div>
   <div class="card">
-    <h3 class="card-title">Language</h3>
-    <div class="hint">Language of the Maillet window, the tray menu and notifications. This settings window is English for now.</div>
-    <select id="lang-select" style="margin-top:10px;max-width:260px" onchange="setLanguage(this.value)"></select>
+    <div class="card-head"><h3 class="card-title" data-t="set.general.language">Language</h3><div class="seg" id="lang-seg"></div></div>
+    <div class="hint" data-t="set.general.language_of_the_maillet">Language of all Maillet windows, the tray menu and notifications.</div>
   </div>
   <div class="card">
-    <h3 class="card-title">Inbox</h3>
-    <div class="hint">The inbox view shows the mails of the last days; older ones are loaded on request.</div>
-    <div class="shortcut-row"><input type="number" id="inbox-days" min="1" max="365" style="max-width:110px"> <span class="hint" style="align-self:center">days</span>
-      <button class="btn-primary" onclick="saveInboxDays()">Save</button></div>
+    <div class="card-head"><h3 class="card-title" data-t="set.general.open_as">Open as</h3>
+      <div class="seg" id="win-form"><button data-v="popup" onclick="saveWindowForm(this.dataset.v)" data-t="set.general.popup">Popup</button><button data-v="sidebar" onclick="saveWindowForm(this.dataset.v)" data-t="set.general.sidebar">Sidebar</button></div></div>
+    <div class="hint" id="win-hint"></div>
+    <div class="card-sub" id="win-side-row" hidden><span data-t="set.general.side">Side</span>
+      <div class="seg" id="win-side"><button data-v="auto" onclick="saveWindowForm(null, this.dataset.v)" data-t="set.general.side_of_the_tray">Side of the tray icon</button><button data-v="left" onclick="saveWindowForm(null, this.dataset.v)" data-t="set.general.left">Left</button><button data-v="right" onclick="saveWindowForm(null, this.dataset.v)" data-t="set.general.right">Right</button></div></div>
   </div>
   <div class="card">
-    <h3 class="card-title">Global shortcut</h3>
-    <div class="hint">Opens Maillet as a sidebar from anywhere and closes it again. Click the field and press the keys you want; Backspace clears, Esc cancels.</div>
+    <div class="card-head"><h3 class="card-title" data-t="set.general.inbox">Inbox</h3>
+      <span class="inline"><input type="number" id="inbox-days" min="1" max="365" style="width:80px"> <span class="hint" style="margin:0" data-t="set.general.days">days</span>
+      <button class="btn-primary" onclick="saveInboxDays()" data-t="set.accounts.save">Save</button></span></div>
+    <div class="hint" data-t="set.general.the_inbox_view_shows">The inbox view shows the mails of the last days; older ones are loaded on request.</div>
+  </div>
+  <div class="card">
+    <h3 class="card-title" data-t="set.general.global_shortcut">Global shortcut</h3>
+    <div class="hint" data-t="set.general.opens_maillet_from_anywhere">Opens Maillet from anywhere and closes it again, in the form chosen under “Open as”. Click the field and press the keys you want; Backspace clears, Esc cancels.</div>
     <div class="shortcut-row">
-      <input id="sc-input" readonly placeholder="Click, then press keys …" onfocus="startRecording()" onblur="stopRecording()">
-      <button class="btn-primary" onclick="saveShortcut()">Save</button>
-      <button onclick="saveShortcut('Ctrl+Alt+M')">Default (Ctrl+Alt+M)</button>
-      <button onclick="saveShortcut('')">Off</button>
+      <input id="sc-input" readonly placeholder="Click, then press keys …" onfocus="startRecording()" onblur="stopRecording()" data-t-ph="set.general.click_then_press_keys">
+      <button class="btn-primary" onclick="saveShortcut()" data-t="set.accounts.save">Save</button>
+      <button onclick="saveShortcut('Ctrl+Alt+M')" data-t="set.general.default_ctrl_alt_m">Default (Ctrl+Alt+M)</button>
+      <button onclick="saveShortcut('')" data-t="set.general.off">Off</button>
     </div>
     <div id="sc-status" class="hint"></div>
-    <div class="hint" style="margin-top:8px">Works on X11 desktops (Cinnamon, KDE, XFCE). On Wayland most desktops do not allow global shortcuts.</div>
+    <div class="hint" style="margin-top:8px" data-t="set.general.works_on_x11_desktops">Works on X11 desktops (Cinnamon, KDE, XFCE). On Wayland most desktops do not allow global shortcuts.</div>
   </div>
 </section>
 
 <!-- ======== Theme ======== -->
 <section class="section" data-sec="theme">
-  <div class="page-head"><h1>Theme</h1></div>
-  <div class="hint" style="margin:-6px 0 4px">Colour theme and style of all Maillet windows, the same choice as in every be spex app. A click applies it at once.</div>
+  <div class="page-head"><h1 data-t="set.nav.theme">Theme</h1></div>
+  <div class="hint" style="margin:-6px 0 4px" data-t="set.theme.colour_theme_and_style">Colour theme and style of all Maillet windows, the same choice as in every be spex app. A click applies it at once.</div>
   <sx-appearance id="appearance" lang="en"></sx-appearance>
 </section>
 
 <!-- ======== Actions ======== -->
 <section class="section" data-sec="actions">
-  <div class="page-head"><h1>Actions</h1></div>
+  <div class="page-head"><h1 data-t="set.nav.actions">Actions</h1></div>
   <div class="card">
-    <h3 class="card-title">Quick actions</h3>
-    <div class="hint">What mails offer on hover and when reading. <b>Exits</b> take the mail out of the inbox and sit along the top of a card, <b>marks</b> keep it there and sit on the right. Keep your inbox empty? Turn off “Read / unread”.</div>
+    <h3 class="card-title" data-t="set.actions.quick_actions">Quick actions</h3>
+    <div class="hint" data-t-html="set.actions.what_mails_offer_on">What mails offer on hover and when reading. <b>Exits</b> take the mail out of the inbox and sit along the top of a card, <b>marks</b> keep it there and sit on the right. Keep your inbox empty? Turn off “Read / unread”.</div>
     <div class="act-preview"><div id="act-preview"></div></div>
-    <div class="act-group-title">Exits</div>
+    <div class="act-group-title" data-t="set.actions.exits">Exits</div>
     <div id="act-exits" class="act-list"></div>
-    <div class="act-group-title">Marks</div>
+    <div class="act-group-title" data-t="set.actions.marks">Marks</div>
     <div id="act-marks" class="act-list"></div>
-    <div class="hint" style="margin-top:8px">At most 4 exits and 3 marks fit on a card; more go behind “⋯”. Done always sits in the corner.</div>
+    <div class="hint" style="margin-top:8px" data-t="set.actions.at_most_4_exits">At most 4 exits and 3 marks fit on a card; more go behind “⋯”. Done always sits in the corner.</div>
   </div>
   <div class="card">
-    <h3 class="card-title">Reading</h3>
-    <label class="check"><input type="checkbox" id="mark-read-open" onchange="setMarkReadOnOpen(this.checked)"> Opening a mail marks it as read</label>
-    <div class="hint" style="margin-left:24px">Off: a mail stays unread – and in the overview – until you mark it as read with the eye or move it on (Done, File, Task).</div>
+    <h3 class="card-title" data-t="set.actions.reading">Reading</h3>
+    <label class="check"><input type="checkbox" id="mark-read-open" onchange="setMarkReadOnOpen(this.checked)"> <span data-t="set.actions.opening_a_mail_marks">Opening a mail marks it as read</span></label>
+    <div class="hint" style="margin-left:24px" data-t="set.actions.off_a_mail_stays">Off: a mail stays unread – and in the overview – until you mark it as read with the eye or move it on (Done, File, Task).</div>
   </div>
   <div class="card">
-    <h3 class="card-title">Categories</h3>
-    <div class="hint">Targets of “File”. The order sets the keys 1–9. A new folder is created on the server on first use; you can also pick an existing one.</div>
+    <h3 class="card-title" data-t="set.actions.categories">Categories</h3>
+    <div class="hint" data-t="set.actions.targets_of_file_the">Targets of “File”. The order sets the keys 1–9. A new folder is created on the server on first use; you can also pick an existing one.</div>
     <div id="cat-list" class="cat-list"></div>
     <datalist id="folder-names"></datalist>
-    <button class="btn-primary" style="margin-top:10px" onclick="addCategory()">+ Add category</button>
+    <button class="btn-primary" style="margin-top:10px" onclick="addCategory()" data-t="set.actions.add_category">+ Add category</button>
   </div>
 </section>
 
 <!-- ======== Notifications ======== -->
 <section class="section" data-sec="notifications">
-  <div class="page-head"><h1>Notifications</h1></div>
+  <div class="page-head"><h1 data-t="set.nav.notifications">Notifications</h1></div>
   <div class="card">
-    <label class="check"><input type="checkbox" id="nt-enabled" onchange="setNotifications(this.checked)"> Desktop notification for new mails from people</label>
-    <div class="hint" style="margin-left:24px">Newsletters, bulk mail and login codes never notify. A click on the notification opens the mail; a burst of mails is collapsed into one notification.</div>
-    <label class="check" style="margin-top:10px"><input type="checkbox" id="nt-people" onchange="setTrayPeople(this.checked)"> Tray icon counts only mails from people</label>
-    <div class="hint" style="margin-left:24px">Otherwise all unread mails count, including newsletters.</div>
+    <label class="check"><input type="checkbox" id="nt-enabled" onchange="setNotifications(this.checked)"> <span data-t="set.notifications.desktop_notification_for_new">Desktop notification for new mails from people</span></label>
+    <div class="hint" style="margin-left:24px" data-t="set.notifications.newsletters_bulk_mail_and">Newsletters, bulk mail and login codes never notify. A click on the notification opens the mail; a burst of mails is collapsed into one notification.</div>
+    <label class="check" style="margin-top:10px"><input type="checkbox" id="nt-people" onchange="setTrayPeople(this.checked)"> <span data-t="set.notifications.tray_icon_counts_only">Tray icon counts only mails from people</span></label>
+    <div class="hint" style="margin-left:24px" data-t="set.notifications.otherwise_all_unread_mails">Otherwise all unread mails count, including newsletters.</div>
   </div>
 </section>
 
 <!-- ======== Log ======== -->
 <section class="section" data-sec="log">
-  <div class="page-head"><h1>Log</h1></div>
+  <div class="page-head"><h1 data-t="set.nav.log">Log</h1></div>
   <div class="log-bar">
     <select id="log-account" onchange="renderLog()"></select>
-    <select id="log-view" onchange="renderLog()"><option value="mail">Mails</option><option value="event">Technical</option></select>
-    <input id="log-filter" placeholder="🔍 Filter sender, subject, rule…" oninput="renderLog()">
-    <button class="btn-sm" id="log-pause" onclick="toggleLogPause()" title="Pause live updates">⏸</button>
-    <button class="btn-sm" onclick="clearLog()" title="Clear log">Clear</button>
+    <select id="log-view" onchange="renderLog()"><option value="mail" data-t="set.log.mails">Mails</option><option value="event" data-t="set.log.technical">Technical</option></select>
+    <input id="log-filter" placeholder="🔍 Filter sender, subject, rule…" oninput="renderLog()" data-t-ph="set.log.filter_sender_subject_rule">
+    <button class="btn-sm" id="log-pause" onclick="toggleLogPause()" title="Pause live updates" data-t-title="set.log.pause_live_updates">⏸</button>
+    <button class="btn-sm" onclick="clearLog()" title="Clear log" data-t="set.log.clear" data-t-title="set.log.clear_log">Clear</button>
   </div>
   <div class="log-list" id="log-list"></div>
-  <p class="hint" style="margin-top:8px">Kept in memory only (last 500 entries), never written to disk. Mail text is not stored; codes are masked – click to reveal. Links are cut after their path.</p>
+  <p class="hint" style="margin-top:8px" data-t="set.log.kept_in_memory_only">Kept in memory only (last 500 entries), never written to disk. Mail text is not stored; codes are masked – click to reveal. Links are cut after their path.</p>
 </section>
 
 </main>
@@ -584,6 +603,31 @@ async function invoke(cmd, args = {}) {
   if (ipc && ipc.core) return ipc.core.invoke(cmd, args)
   throw new Error('Tauri API not found')
 }
+
+// ---- Translation: the same tables as the Maillet window (dist/i18n/<code>.json, keys set.*) ----
+// Static texts carry data-t (text), data-t-html, data-t-title or data-t-ph; the English in the page
+// stays as fallback. A language change reloads this window.
+let T = {}
+function t(key, vars) {
+  let s = T[key] ?? key
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(v)
+  return s
+}
+/** Plural: key_one for 1, key otherwise; {n} is the number. */
+const tn = (key, n, vars = {}) => t(n === 1 ? key + '_one' : key, { n, ...vars })
+function applyI18n(root = document) {
+  const each = (sel, fn) => root.querySelectorAll(sel).forEach(fn)
+  each('[data-t]', el => { const v = T[el.dataset.t]; if (v != null) el.textContent = v })
+  each('[data-t-html]', el => { const v = T[el.dataset.tHtml]; if (v != null) el.innerHTML = v })
+  each('[data-t-title]', el => { const v = T[el.dataset.tTitle]; if (v != null) el.title = v })
+  each('[data-t-ph]', el => { const v = T[el.dataset.tPh]; if (v != null) el.placeholder = v })
+}
+const i18nReady = invoke('get_i18n').then(r => {
+  T = r.strings || {}
+  document.documentElement.lang = r.language
+  document.getElementById('appearance').setAttribute('lang', r.language)
+  applyI18n()
+}).catch(() => {})
 
 function showToast(msg, type) {
   const t = document.getElementById('toast')
@@ -600,7 +644,7 @@ function esc(s) {
 
 async function copyText(text, msg) {
   try { await invoke('copy_code', { code: text }); showToast(msg, 'success') }
-  catch(e) { showToast('Copy failed: ' + e, 'error') }
+  catch(e) { showToast(t('set.js.copy_failed', { e }), 'error') }
 }
 
 // ---- Shared state ----
@@ -652,17 +696,17 @@ const currentSection = () => document.querySelector('.section.on')?.dataset.sec
 
 // Chips show the tag itself; the account name goes into the tooltip.
 function tagLabel(tag) {
-  return tag === ALL ? 'All accounts' : tag
+  return tag === ALL ? t('set.js.all_accounts') : tag
 }
 
 function tagTitle(tag) {
   if (tag === ALL) return ''
   const a = accountByTag(tag)
-  return a ? `Account: ${a.label || a.user || '(unnamed)'}` : 'No account has this tag'
+  return a ? t('set.js.account_named', { name: a.label || a.user || t('set.js.unnamed') }) : t('set.js.no_account_tag')
 }
 
 function tagChips(tags) {
-  if (!(tags || []).length) return '<span class="chip warn">⚠ no account – not checked</span>'
+  if (!(tags || []).length) return `<span class="chip warn">${t('set.js.no_account_unchecked')}</span>`
   return tags.map(t => {
     const known = t === ALL || accountByTag(t)
     return `<span class="chip${known ? '' : ' warn'}" title="${esc(tagTitle(t))}">${esc(tagLabel(t))}</span>`
@@ -674,9 +718,9 @@ let editAccountId = null
 
 function renderStatus(id) {
   const st = statuses[id]
-  if (!st) return '<div class="status"><span class="dot"></span><span class="msg dim">No connection attempt yet</span></div>'
+  if (!st) return `<div class="status"><span class="dot"></span><span class="msg dim">${t('set.js.no_attempt')}</span></div>`
   const when = new Date(st.timestamp * 1000).toLocaleString()
-  const title = { ok:'OK', error:'Error', connecting:'Connecting' }[st.state] || st.state
+  const title = { ok: t('set.js.st_ok'), error: t('set.js.st_error'), connecting: t('set.js.st_connecting') }[st.state] || st.state
   return `<div class="status ${st.state}"><span class="dot ${st.state}"></span><span class="msg"><b>${title}:</b> ${esc(st.message)}</span><span class="when">${when}</span></div>`
 }
 
@@ -690,7 +734,7 @@ function updateStatus(st) {
 function renderAccountList() {
   const el = document.getElementById('account-list')
   if (!accounts.length) {
-    el.innerHTML = '<div class="empty-state">No accounts configured.<br>Click “+ Add account” to get started.</div>'
+    el.innerHTML = `<div class="empty-state">${t('set.js.no_accounts')}</div>`
     return
   }
   el.innerHTML = accounts.map(a => {
@@ -698,12 +742,12 @@ function renderAccountList() {
     return `
     <div class="card account-row" onclick="openAccount('${esc(a.id)}')">
       <div>
-        <h3>${esc(a.label || a.user || '(unnamed)')}</h3>
+        <h3>${esc(a.label || a.user || t('set.js.unnamed'))}</h3>
         <div class="meta">${a.kind === 'graph' ? `${esc(a.user)} · Microsoft 365` : `${esc(a.user)} · ${esc(a.server)}:${a.port} · ${esc(a.mailbox)}`}</div>
       </div>
       <div style="text-align:right">
         <code class="mono dim" style="font-size:12px">${esc(a.tag)}</code><br>
-        <button class="link" onclick="event.stopPropagation();showRulesFor('${esc(a.tag)}')">${n ? `${n} rule${n === 1 ? '' : 's'}` : 'default rule'}</button>
+        <button class="link" onclick="event.stopPropagation();showRulesFor('${esc(a.tag)}')">${n ? tn('set.js.n_rules', n) : t('set.js.default_rule')}</button>
       </div>
       <div id="status-${esc(a.id)}">${renderStatus(a.id)}</div>
     </div>`
@@ -714,7 +758,7 @@ async function loadAccounts() {
   try {
     await reloadData()
     renderAccountList()
-  } catch(e) { showToast('Failed to load accounts: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.load_accounts_failed', { e }), 'error') }
 }
 
 function showAccountView(detail) {
@@ -726,8 +770,8 @@ function showAccountView(detail) {
 function openAccount(id) {
   const a = accounts.find(x => x.id === id) || { port: 993, security: 'ssl', mailbox: 'INBOX' }
   editAccountId = id
-  document.getElementById('acc-title').textContent = id ? (a.label || 'Edit account') : 'Add account'
-  document.getElementById('f-pass').placeholder = id ? 'Leave blank to keep existing' : 'Required'
+  document.getElementById('acc-title').textContent = id ? (a.label || t('set.js.edit_account')) : t('set.accounts.add_account_2')
+  document.getElementById('f-pass').placeholder = id ? t('set.js.keep_password') : t('set.js.required')
   document.getElementById('f-label').value = a.label || ''
   document.getElementById('f-server').value = a.server || ''
   document.getElementById('f-port').value = a.port
@@ -742,8 +786,8 @@ function openAccount(id) {
   document.getElementById('f-client-id').disabled = !!id
   document.getElementById('f-tenant').value = a.tenant || 'organizations'
   document.getElementById('f-tenant').disabled = !!id
-  document.getElementById('g-signed').innerHTML = id && a.kind === 'graph' ? `Signed in as <b>${esc(a.user)}</b>.` : ''
-  document.getElementById('g-start').textContent = id ? 'Sign in again' : 'Sign in with Microsoft'
+  document.getElementById('g-signed').innerHTML = id && a.kind === 'graph' ? t('set.js.signed_in_as', { user: `<b>${esc(a.user)}</b>` }) : ''
+  document.getElementById('g-start').textContent = id ? t('set.js.sign_in_again') : t('set.accounts.sign_in_with_microsoft')
   resetGraphCode()
   onKindChange()
   document.getElementById('test-conn').innerHTML = ''
@@ -753,7 +797,7 @@ function openAccount(id) {
     document.getElementById('f-tag').value = a.tag
     const n = rulesFor(a.tag).length
     const link = document.getElementById('acc-rules-link')
-    link.textContent = n ? `Checks ${n} rule${n === 1 ? '' : 's'} →` : 'Checks the default rule →'
+    link.textContent = n ? tn('set.js.checks_n_rules', n) : t('set.js.checks_default_rule')
     link.onclick = () => showRulesFor(a.tag)
   }
   showAccountView(true)
@@ -777,7 +821,7 @@ function onKindChange() {
   const graph = document.getElementById('f-kind').value === 'graph'
   document.getElementById('graph-fields').style.display = graph ? '' : 'none'
   document.getElementById('imap-fields').style.display = graph ? 'none' : ''
-  document.getElementById('f-label').placeholder = graph ? 'e.g. Work' : 'e.g. Gmail'
+  document.getElementById('f-label').placeholder = graph ? t('set.js.eg_work') : t('set.accounts.e_g_gmail')
   // A new Microsoft account is created by signing in; there is nothing to save before.
   const newGraph = graph && !editAccountId
   document.querySelector('#acc-actions .btn-primary').style.display = newGraph ? 'none' : ''
@@ -797,15 +841,15 @@ async function graphSignIn() {
   try {
     const c = await invoke('graph_sign_in_start', { clientId: document.getElementById('f-client-id').value, tenant: document.getElementById('f-tenant').value })
     box.style.display = ''
-    box.innerHTML = `<div class="g-step">1. Open <button class="link" id="g-open">${esc(c.verification_uri)}</button></div>
-      <div class="g-step">2. Enter this code: <code class="g-usercode">${esc(c.user_code)}</code> <button class="btn-sm" id="g-copy">Copy</button></div>
-      <div class="g-step">3. Sign in and allow access. <span class="status connecting" style="display:inline-flex"><span class="dot connecting"></span><span class="msg">Waiting for confirmation …</span></span> <button class="btn-sm" id="g-cancel">Cancel</button></div>`
+    box.innerHTML = `<div class="g-step">${t('set.js.g_step1', { link: `<button class="link" id="g-open">${esc(c.verification_uri)}</button>` })}</div>
+      <div class="g-step">${t('set.js.g_step2', { code: `<code class="g-usercode">${esc(c.user_code)}</code>` })} <button class="btn-sm" id="g-copy">${t('set.api.copy')}</button></div>
+      <div class="g-step">${t('set.js.g_step3')} <span class="status connecting" style="display:inline-flex"><span class="dot connecting"></span><span class="msg">${t('set.js.g_waiting')}</span></span> <button class="btn-sm" id="g-cancel">${t('set.accounts.cancel')}</button></div>`
     document.getElementById('g-open').onclick = () => invoke('open_link', { url: c.verification_uri })
-    document.getElementById('g-copy').onclick = () => invoke('copy_code', { code: c.user_code }).then(() => showToast('Code copied', 'success'))
+    document.getElementById('g-copy').onclick = () => invoke('copy_code', { code: c.user_code }).then(() => showToast(t('set.js.code_copied'), 'success'))
     document.getElementById('g-cancel').onclick = () => { invoke('graph_sign_in_cancel'); resetGraphCode() }
     invoke('open_link', { url: c.verification_uri }).catch(() => {})
     accounts = await invoke('graph_sign_in_finish', { label: document.getElementById('f-label').value, accountId: editAccountId })
-    showToast(editAccountId ? 'Signed in again.' : 'Microsoft account added.', 'success')
+    showToast(editAccountId ? t('set.js.signed_in_again') : t('set.js.ms_added'), 'success')
     closeAccount()
   } catch (e) {
     box.style.display = ''
@@ -832,7 +876,7 @@ function accountForm() {
 
 async function testConnection() {
   const el = document.getElementById('test-conn')
-  el.innerHTML = '<div class="status"><span class="dot connecting"></span><span class="msg">Connecting…</span></div>'
+  el.innerHTML = `<div class="status"><span class="dot connecting"></span><span class="msg">${t('set.js.connecting')}</span></div>`
   try {
     const msg = await invoke('test_connection', { account: accountForm() })
     el.innerHTML = `<div class="status ok"><span class="dot ok"></span><span class="msg">✓ ${esc(msg)}</span></div>`
@@ -845,9 +889,9 @@ async function saveAccount() {
   try {
     await invoke(editAccountId ? 'update_account' : 'add_account', { account: accountForm() })
     await restartImap()
-    showToast('Account saved.', 'success')
+    showToast(t('set.js.account_saved'), 'success')
     closeAccount()
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 async function renameTag() {
@@ -856,19 +900,19 @@ async function renameTag() {
     accounts = await invoke('rename_tag', { accountId: editAccountId, tag })
     rules = await invoke('get_rules')
     await restartImap()
-    showToast(`Tag renamed to “${tag}”.`, 'success')
-  } catch(e) { showToast('Error: ' + e, 'error') }
+    showToast(t('set.js.tag_renamed', { tag }), 'success')
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 async function deleteAccount() {
   const a = accounts.find(x => x.id === editAccountId)
-  if (!confirm(`Delete the account “${a?.label}”?\nIts rules are kept; rules used only by this account are no longer checked.`)) return
+  if (!confirm(t('set.js.confirm_delete_account', { name: a?.label }))) return
   try {
     await invoke('remove_account', { id: editAccountId })
     await restartImap()
-    showToast('Account deleted.', 'success')
+    showToast(t('set.js.account_deleted'), 'success')
     closeAccount()
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 async function restartImap() {
@@ -880,17 +924,17 @@ let editRule = null
 let testSample = { from: '', subject: '', body: '' }
 
 const CODE_FORMATS = [
-  { id:'digits', label:'Digits (4–8)', pattern:'[0-9]{4,8}' },
-  { id:'alnum', label:'Letters, digits, dash', pattern:'[A-Za-z0-9-]{4,12}' },
-  { id:'custom', label:'Custom regex…', pattern:null },
+  { id:'digits', get label() { return t('set.js.fmt_digits') }, pattern:'[0-9]{4,8}' },
+  { id:'alnum', get label() { return t('set.js.fmt_alnum') }, pattern:'[A-Za-z0-9-]{4,12}' },
+  { id:'custom', get label() { return t('set.js.fmt_custom') }, pattern:null },
 ]
 const formatOf = p => (CODE_FORMATS.find(f => f.pattern === p) || CODE_FORMATS[2]).id
 const newRule = (kind = 'code', tags = [ALL]) => ({ id:'', tags, label:'', kind, sender:'', subject: kind === 'code' ? '{code} is your code' : '',
   body:'', code_pattern:'[0-9]{4,8}', link_prefix:'', enabled:true })
-const STAGE_LABEL = { sender: 'Sender', subject: 'Subject', body: 'Body', link: 'Body' }
+const STAGE_LABEL = { get sender() { return t('set.js.sender') }, get subject() { return t('set.js.subject') }, get body() { return t('set.js.body') }, get link() { return t('set.js.body') } }
 
 function cleanRule(r) {
-  return { id: r.id || '', tags: r.tags || [], catalog: r.catalog || null, label: r.label || 'Rule', kind: r.kind || 'code',
+  return { id: r.id || '', tags: r.tags || [], catalog: r.catalog || null, label: r.label || t('set.js.rule'), kind: r.kind || 'code',
            sender: r.sender || '', subject: r.subject || '', body: r.body || '', code_pattern: r.code_pattern || '',
            link_prefix: r.link_prefix || '', enabled: !!r.enabled }
 }
@@ -899,11 +943,11 @@ async function loadRules() {
   try {
     await reloadData()
     const sel = document.getElementById('rule-account'), cur = sel.value
-    sel.innerHTML = '<option value="">All rules</option>' +
-      accounts.map(a => `<option value="${esc(a.tag)}">Checked by ${esc(a.label)}</option>`).join('')
+    sel.innerHTML = `<option value="">${t('set.js.all_rules')}</option>` +
+      accounts.map(a => `<option value="${esc(a.tag)}">${t('set.js.checked_by_name', { name: esc(a.label) })}</option>`).join('')
     sel.value = [...sel.options].some(o => o.value === cur) ? cur : ''
     renderRuleList()
-  } catch(e) { showToast('Failed to load rules: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.load_rules_failed', { e }), 'error') }
 }
 
 async function showRulesFor(tag) {
@@ -925,21 +969,21 @@ function renderRuleList() {
     (!q || [r.label, r.sender, r.subject, r.body, r.link_prefix].some(v => (v || '').toLowerCase().includes(q))))
   shownRules = shown.map(([r]) => r)
   document.getElementById('export-menu').style.display = shown.length ? '' : 'none'
-  document.getElementById('export-summary').textContent = shown.length === rules.length ? 'Export all ▾' : `Export ${shown.length} ▾`
+  document.getElementById('export-summary').textContent = shown.length === rules.length ? t('set.js.export_all') : t('set.js.export_n', { n: shown.length })
   const el = document.getElementById('rule-list')
   if (!rules.length) {
-    el.innerHTML = '<div class="empty-state">No rules yet.<br>Add one with “+ New rule” or take rules from the Catalog.</div>'
+    el.innerHTML = `<div class="empty-state">${t('set.js.no_rules')}</div>`
     return
   }
-  if (!shown.length) { el.innerHTML = '<div class="empty-state">No matching rules.</div>'; return }
+  if (!shown.length) { el.innerHTML = `<div class="empty-state">${t('set.js.no_matching_rules')}</div>`; return }
   el.innerHTML = '<div class="rule-list">' + shown.map(([r, i]) => `
     <div class="rule-row ${r.enabled ? '' : 'off'}" onclick="openRule('${esc(r.id)}')">
       <span>${r.kind === 'link' ? '🔗' : '🔢'}</span>
       <span class="name">${esc(r.label)}</span>
       <div class="ctl" onclick="event.stopPropagation()">
-        <input type="checkbox" title="Active" ${r.enabled ? 'checked' : ''} onchange="toggleRule('${esc(r.id)}', this.checked)">
-        <button class="btn-xs" title="Move up" ${i === 0 ? 'disabled' : ''} onclick="moveRule('${esc(r.id)}', -1)">↑</button>
-        <button class="btn-xs" title="Move down" ${i === rules.length - 1 ? 'disabled' : ''} onclick="moveRule('${esc(r.id)}', 1)">↓</button>
+        <input type="checkbox" title="${t('set.js.active')}" ${r.enabled ? 'checked' : ''} onchange="toggleRule('${esc(r.id)}', this.checked)">
+        <button class="btn-xs" title="${t('set.js.move_up')}" ${i === 0 ? 'disabled' : ''} onclick="moveRule('${esc(r.id)}', -1)">↑</button>
+        <button class="btn-xs" title="${t('set.js.move_down')}" ${i === rules.length - 1 ? 'disabled' : ''} onclick="moveRule('${esc(r.id)}', 1)">↓</button>
       </div>
       <span class="pattern">${esc(rulePattern(r))}</span>
       <span class="tags">${tagChips(r.tags)}</span>
@@ -949,13 +993,13 @@ function renderRuleList() {
 async function toggleRule(id, enabled) {
   const r = rules.find(x => x.id === id)
   try { rules = await invoke('save_rule', { rule: cleanRule({ ...r, enabled }) }) }
-  catch(e) { showToast('Error: ' + e, 'error') }
+  catch(e) { showToast(t('set.js.error', { e }), 'error') }
   renderRuleList()
 }
 
 async function moveRule(id, delta) {
   try { rules = await invoke('move_rule', { id, delta }); renderRuleList() }
-  catch(e) { showToast('Error: ' + e, 'error') }
+  catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 // view: 'list', 'detail' (rule editor) or 'import'
@@ -970,11 +1014,11 @@ async function openRule(id, prefill = {}) {
   if (currentSection() !== 'rules') go('rules')
   await reloadData()
   const r = id ? rules.find(x => x.id === id) : null
-  if (id && !r) return showToast('Rule no longer exists.', 'error')
+  if (id && !r) return showToast(t('set.js.rule_gone'), 'error')
   editRule = JSON.parse(JSON.stringify(r || prefill.rule || newRule()))
   suggest = null
   testSample = prefill.sample || { from: '', subject: '', body: '' }
-  document.getElementById('rule-title').textContent = id ? (r.label || 'Edit rule') : 'New rule'
+  document.getElementById('rule-title').textContent = id ? (r.label || t('set.js.edit_rule')) : t('set.rules.new_rule_2')
   showRuleView('detail')
   renderRuleEditor()
 }
@@ -1018,13 +1062,13 @@ function removeTag(tag) {
 
 function tagEditor() {
   const tags = editRule.tags || []
-  const chips = tags.map(t => `<span class="chip${t === ALL || accountByTag(t) ? '' : ' warn'}" title="${esc(tagTitle(t))}">${esc(tagLabel(t))}<button title="Remove" onclick="removeTag('${esc(t)}')">✕</button></span>`).join('')
+  const chips = tags.map(tg => `<span class="chip${tg === ALL || accountByTag(tg) ? '' : ' warn'}" title="${esc(tagTitle(tg))}">${esc(tagLabel(tg))}<button title="${t('set.js.remove')}" onclick="removeTag('${esc(tg)}')">✕</button></span>`).join('')
   const options = [
-    ...(tags.includes(ALL) ? [] : [`<option value="${ALL}">All accounts</option>`]),
+    ...(tags.includes(ALL) ? [] : [`<option value="${ALL}">${t('set.js.all_accounts')}</option>`]),
     ...accounts.filter(a => !tags.includes(a.tag)).map(a => `<option value="${esc(a.tag)}">${esc(a.label)} (${esc(a.tag)})</option>`),
   ]
   return `<div class="tag-editor">${chips}${options.length
-    ? `<select onchange="addTag(this.value)"><option value="">+ Add account…</option>${options.join('')}</select>` : ''}</div>
+    ? `<select onchange="addTag(this.value)"><option value="">${t('set.js.add_account_pick')}</option>${options.join('')}</select>` : ''}</div>
     ${tags.length ? '' : '<div class="hint" style="color:var(--sx-warn)">⚠ Not assigned to any account – this rule is not checked.</div>'}`
 }
 
@@ -1033,58 +1077,58 @@ function renderRuleEditor() {
   const isLink = r.kind === 'link'
   const subjectHasCode = !isLink && (r.subject || '').includes('{code}')
   const fmt = r._custom ? 'custom' : formatOf(r.code_pattern)
-  const origin = r.catalog ? `<div class="hint" style="margin-bottom:10px">From the catalog: <code>${esc(r.catalog.app)}</code> (${esc(r.catalog.lang)})</div>` : ''
+  const origin = r.catalog ? `<div class="hint" style="margin-bottom:10px">${t('set.js.from_catalog', { app: `<code>${esc(r.catalog.app)}</code>`, lang: esc(r.catalog.lang) })}</div>` : ''
   document.getElementById('rule-editor').innerHTML = `
   <div class="card">
     <div class="segmented">
-      <button class="${isLink ? '' : 'on'}" onclick="setKind('code')">🔢 Code</button>
-      <button class="${isLink ? 'on' : ''}" onclick="setKind('link')">🔗 Link</button>
+      <button class="${isLink ? '' : 'on'}" onclick="setKind('code')">🔢 ${t('set.js.code')}</button>
+      <button class="${isLink ? 'on' : ''}" onclick="setKind('link')">🔗 ${t('set.js.link')}</button>
     </div>
     <div class="hint" style="margin:-8px 0 12px">${isLink
-      ? 'Detects a <b>login link</b> (e.g. a magic link) in the body and offers it for opening.'
-      : 'Detects a <b>code</b> and shows it large for copying. The body is only downloaded when sender and subject already match.'}</div>
+      ? t('set.js.kind_link_hint')
+      : t('set.js.kind_code_hint')}</div>
     ${origin}
     <div class="grid-2">
       <div class="form-group">
-        <label>Name</label>
-        <input value="${esc(r.label)}" placeholder="e.g. GitHub 2FA" oninput="setField('label', this.value)">
+        <label>${t('set.js.name')}</label>
+        <input value="${esc(r.label)}" placeholder="${t('set.js.eg_github')}" oninput="setField('label', this.value)">
       </div>
       <div class="form-group">
         <label>&nbsp;</label>
-        <label class="check"><input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="setField('enabled', this.checked)"> Active</label>
+        <label class="check"><input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="setField('enabled', this.checked)"> ${t('set.js.active')}</label>
       </div>
     </div>
     <div class="form-group">
-      <label>Checked by</label>
+      <label>${t('set.js.checked_by')}</label>
       ${tagEditor()}
     </div>
     <div class="form-group">
-      <label>Sender <small>(optional)</small></label>
-      <input value="${esc(r.sender)}" placeholder="e.g. noreply@github.com, *@bank.de" oninput="setField('sender', this.value)">
-      <div class="hint">Comma-separated, <code>*</code> = any text. Empty = any sender.</div>
+      <label>${t('set.js.sender')} <small>${t('set.js.optional')}</small></label>
+      <input value="${esc(r.sender)}" placeholder="${t('set.js.eg_sender')}" oninput="setField('sender', this.value)">
+      <div class="hint">${t('set.js.sender_hint')}</div>
     </div>
     <div class="form-group">
-      <label>Subject</label>
+      <label>${t('set.js.subject')}</label>
       <input value="${esc(r.subject)}" placeholder="${isLink ? 'Secure link to log in*' : '{code} is your code'}" oninput="setField('subject', this.value)" onchange="renderRuleEditor()">
       <div class="hint">${isLink
-        ? 'Write the subject as it arrives, <code>*</code> for changing text. Case is ignored. Empty = any subject (then a sender is required).'
-        : 'Write the subject as it arrives, put <code>{code}</code> where the code is and <code>*</code> for changing text. Case is ignored. Without <code>{code}</code> the code is read from the body.'}</div>
+        ? t('set.js.subject_link_hint')
+        : t('set.js.subject_code_hint')}</div>
     </div>
     ${isLink ? `
     <div class="form-group">
-      <label>Link starts with</label>
+      <label>${t('set.js.link_starts')}</label>
       <input class="mono" value="${esc(r.link_prefix)}" placeholder="https://claude.ai/magic-link" oninput="setField('link_prefix', this.value)">
-      <div class="hint">The first link in the mail body starting with this text is offered for opening. Be specific (domain and path) – only matching links are ever opened.</div>
+      <div class="hint">${t('set.js.link_hint')}</div>
     </div>` : ''}
     ${isLink || subjectHasCode ? '' : `
     <div class="form-group">
-      <label>Body <small>(code is read from the mail text)</small></label>
-      <input value="${esc(r.body)}" placeholder="Your verification code is {code}" oninput="setField('body', this.value)">
-      <div class="hint">Text around the code, with <code>{code}</code>. Line breaks don't matter. Empty = first code-like word in the body.</div>
+      <label>${t('set.js.body')} <small>${t('set.js.body_small')}</small></label>
+      <input value="${esc(r.body)}" placeholder="${t('set.js.eg_body')}" oninput="setField('body', this.value)">
+      <div class="hint">${t('set.js.body_hint')}</div>
     </div>`}
     ${isLink ? '' : `
     <div class="form-group">
-      <label>Code format</label>
+      <label>${t('set.js.code_format')}</label>
       <div class="grid-code">
         <select onchange="setFormat(this.value)">
           ${CODE_FORMATS.map(f => `<option value="${f.id}" ${f.id === fmt ? 'selected' : ''}>${f.label}</option>`).join('')}
@@ -1096,28 +1140,28 @@ function renderRuleEditor() {
     </div>`}
 
     <div class="tester">
-      <h4>Test with a sample mail</h4>
+      <h4>${t('set.js.test_title')}</h4>
       <div class="grid-2">
-        <div class="form-group"><label>From</label><input value="${esc(testSample.from)}" placeholder="noreply@example.com" oninput="testSample.from=this.value;runTest()"></div>
-        <div class="form-group"><label>Subject</label><input value="${esc(testSample.subject)}" placeholder="123456 is your code" oninput="testSample.subject=this.value;runTest()"></div>
+        <div class="form-group"><label>${t('set.js.from')}</label><input value="${esc(testSample.from)}" placeholder="noreply@example.com" oninput="testSample.from=this.value;runTest()"></div>
+        <div class="form-group"><label>${t('set.js.subject')}</label><input value="${esc(testSample.subject)}" placeholder="123456 is your code" oninput="testSample.subject=this.value;runTest()"></div>
       </div>
-      <div class="form-group"><label>Body</label><textarea rows="3" oninput="testSample.body=this.value;runTest()">${esc(testSample.body)}</textarea></div>
-      <div class="test-result" id="test-result">Enter a sample mail.</div>
+      <div class="form-group"><label>${t('set.js.body')}</label><textarea rows="3" oninput="testSample.body=this.value;runTest()">${esc(testSample.body)}</textarea></div>
+      <div class="test-result" id="test-result">${t('set.js.enter_sample')}</div>
       <div class="stages" id="test-stages"></div>
     </div>
 
     <div class="form-actions">
-      ${r.id ? '<button class="btn-danger btn-sm left" onclick="deleteRule()">Delete</button>' : ''}
+      ${r.id ? `<button class="btn-danger btn-sm left" onclick="deleteRule()">${t('set.js.delete')}</button>` : ''}
       <details class="menu sm up ${r.id ? '' : 'left'}">
-        <summary>Share ▾</summary>
+        <summary>${t('set.js.share')}</summary>
         <div class="menu-items">
-          <button onclick="exportRule('copy')">Copy as JSON</button>
-          <button onclick="exportRule('file')">Save as file…</button>
-          <button onclick="toggleSuggest()">Suggest for the catalog…</button>
+          <button onclick="exportRule('copy')">${t('set.js.copy_json')}</button>
+          <button onclick="exportRule('file')">${t('set.rules.save_as_file')}</button>
+          <button onclick="toggleSuggest()">${t('set.js.suggest_menu')}</button>
         </div>
       </details>
-      <button onclick="closeRule()">Cancel</button>
-      <button class="btn-primary" onclick="saveRule()">Save</button>
+      <button onclick="closeRule()">${t('set.accounts.cancel')}</button>
+      <button class="btn-primary" onclick="saveRule()">${t('set.accounts.save')}</button>
     </div>
     ${suggest ? suggestPanel() : ''}
   </div>`
@@ -1129,14 +1173,14 @@ async function runTest() {
   if (!el) return
   const { from, subject, body } = testSample
   stagesEl.innerHTML = ''
-  if (!from && !subject && !body) { el.className = 'test-result'; el.textContent = 'Enter a sample mail.'; return }
+  if (!from && !subject && !body) { el.className = 'test-result'; el.textContent = t('set.js.enter_sample'); return }
   try {
     const trace = await invoke('test_rule', { rule: cleanRule(editRule), from, subject, body })
     const failed = trace.stages.find(s => !s.ok)
     el.className = 'test-result ' + (trace.value ? 'ok' : 'err')
     el.textContent = trace.value
-      ? `✓ ${editRule.kind === 'link' ? 'Link' : 'Code'} found: ${trace.value}`
-      : `✗ No match – ${failed ? `${STAGE_LABEL[failed.stage]} ${failed.detail}` : 'nothing found'}`
+      ? `✓ ${t(editRule.kind === 'link' ? 'set.js.link_found' : 'set.js.code_found', { v: trace.value })}`
+      : `✗ ${t('set.js.no_match', { why: failed ? `${STAGE_LABEL[failed.stage]} ${failed.detail}` : t('set.js.nothing_found') })}`
     stagesEl.innerHTML = traceStages(trace)
   } catch(e) {
     el.className = 'test-result err'
@@ -1151,26 +1195,26 @@ function traceStages(t) {
 async function saveRule() {
   try {
     rules = await invoke('save_rule', { rule: cleanRule(editRule) })
-    showToast('Rule saved – active from the next mail check.', 'success')
+    showToast(t('set.js.rule_saved'), 'success')
     closeRule()
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 async function deleteRule() {
-  if (!confirm(`Delete the rule “${editRule.label}”?`)) return
+  if (!confirm(t('set.js.confirm_delete_rule', { name: editRule.label }))) return
   try {
     rules = await invoke('delete_rule', { id: editRule.id })
-    showToast('Rule deleted.', 'success')
+    showToast(t('set.js.rule_deleted'), 'success')
     closeRule()
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 // ================= Sharing =================
 let shownRules = [], suggest = null
 let importItems = [], importError = '', importTags = [ALL], importSeq = 0
 const CATALOG_ISSUE = 'https://github.com/be-spex/Maillet/issues/new'
-const IMPORT_STATUS = { new:'New', update:'Update', unchanged:'Unchanged' }
-const FIELD_LABEL = { kind:'type', sender:'sender', subject:'subject', body:'body', code_pattern:'code format', link_prefix:'link' }
+const IMPORT_STATUS = { get new() { return t('set.js.imp_new') }, get update() { return t('set.js.imp_update') }, get unchanged() { return t('set.js.imp_unchanged') } }
+const FIELD_LABEL = { get kind() { return t('set.js.f_kind') }, get sender() { return t('set.js.f_sender') }, get subject() { return t('set.js.f_subject') }, get body() { return t('set.js.f_body') }, get code_pattern() { return t('set.js.f_code_pattern') }, get link_prefix() { return t('set.js.f_link') } }
 const slug = s => s.toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
   .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
@@ -1191,7 +1235,7 @@ async function shareRules(list, how, fileBase) {
       const path = await invoke('save_json_file', { fileName: `${fileBase}.json`, content: json })
       if (path) showToast(`${what} saved to ${path}.`, 'success')
     }
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 const exportShown = how => shareRules(shownRules, how, 'maillet-rules')
@@ -1223,16 +1267,16 @@ function catalogSnippet() {
 function suggestPanel() {
   return `
     <div class="tester" style="margin-top:14px">
-      <h4>Suggest for the catalog</h4>
+      <h4>${t('set.js.suggest_title')}</h4>
       <div class="grid-2">
-        <div class="form-group"><label>Service</label><input value="${esc(suggest.name)}" placeholder="e.g. Spotify" oninput="suggest.name=this.value;updateSnippet()"></div>
-        <div class="form-group"><label>Language <small>(ISO code)</small></label><input value="${esc(suggest.lang)}" placeholder="de" oninput="suggest.lang=this.value.trim().toLowerCase();updateSnippet()"></div>
+        <div class="form-group"><label>${t('set.js.service')}</label><input value="${esc(suggest.name)}" placeholder="${t('set.js.eg_spotify')}" oninput="suggest.name=this.value;updateSnippet()"></div>
+        <div class="form-group"><label>${t('set.general.language')} <small>${t('set.js.iso_code')}</small></label><input value="${esc(suggest.lang)}" placeholder="de" oninput="suggest.lang=this.value.trim().toLowerCase();updateSnippet()"></div>
       </div>
       <pre class="example" id="suggest-snippet">${esc(catalogSnippet())}</pre>
-      <div class="hint">An app entry for <code>catalog/catalog.json</code>. Only suggest rules you checked against a real mail. If the service is already in the catalog, add the rule to its <code>variants</code> instead.</div>
+      <div class="hint">${t('set.js.suggest_hint')}</div>
       <div class="form-actions">
-        <button class="btn-sm" onclick="copySnippet()">Copy entry</button>
-        <button class="btn-sm btn-primary" onclick="openCatalogIssue()">Open GitHub issue…</button>
+        <button class="btn-sm" onclick="copySnippet()">${t('set.js.copy_entry')}</button>
+        <button class="btn-sm btn-primary" onclick="openCatalogIssue()">${t('set.js.open_issue')}</button>
       </div>
     </div>`
 }
@@ -1243,15 +1287,15 @@ function updateSnippet() {
 }
 
 async function copySnippet() {
-  try { await invoke('copy_code', { code: catalogSnippet() }); showToast('Catalog entry copied.', 'success') }
-  catch(e) { showToast('Error: ' + e, 'error') }
+  try { await invoke('copy_code', { code: catalogSnippet() }); showToast(t('set.js.entry_copied'), 'success') }
+  catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 function openCatalogIssue() {
-  if (!suggest.name.trim() || !suggest.lang) return showToast('Enter service and language.', 'error')
+  if (!suggest.name.trim() || !suggest.lang) return showToast(t('set.js.enter_service'), 'error')
   const body = `**Service:** ${suggest.name}\n**Language:** ${suggest.lang}\n\nTested with a real mail in Maillet.\n\n\`\`\`json\n${catalogSnippet()}\n\`\`\`\n`
   const url = `${CATALOG_ISSUE}?title=${encodeURIComponent(`Catalog: ${suggest.name}`)}&body=${encodeURIComponent(body)}`
-  invoke('open_link', { url }).catch(e => showToast('Error: ' + e, 'error'))
+  invoke('open_link', { url }).catch(e => showToast(t('set.js.error', { e }), 'error'))
 }
 
 // ---- Import ----
@@ -1275,7 +1319,7 @@ async function importFromFile() {
     if (json == null) return
     document.getElementById('import-json').value = json
     previewImport()
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 async function previewImport() {
@@ -1314,35 +1358,35 @@ function renderImportPreview() {
       <span>${it.rule.kind === 'link' ? '🔗' : '🔢'}</span>
       <span class="name">${esc(it.rule.label)}</span>
       <span class="status-badge ${it.status}">${IMPORT_STATUS[it.status]}</span>
-      ${it.changes.length ? `<span class="changes">Changes ${it.changes.map(c => FIELD_LABEL[c] || c).join(', ')}</span>` : ''}
+      ${it.changes.length ? `<span class="changes">${t('set.js.changes', { list: it.changes.map(c => FIELD_LABEL[c] || c).join(', ') })}</span>` : ''}
     </div>`).join('')
   const accountPick = picked.some(i => i.status === 'new') ? `
     <div class="form-group">
-      <label>Check new rules with</label>
+      <label>${t('set.js.check_new_with')}</label>
       <div class="check-row">
-        <label><input type="checkbox" ${all ? 'checked' : ''} onchange="setImportTag('${ALL}', this.checked)"> All accounts</label>
+        <label><input type="checkbox" ${all ? 'checked' : ''} onchange="setImportTag('${ALL}', this.checked)"> ${t('set.js.all_accounts')}</label>
         ${accounts.map(a => `<label><input type="checkbox" ${importTags.includes(a.tag) ? 'checked' : ''} ${all ? 'disabled' : ''} onchange="setImportTag('${esc(a.tag)}', this.checked)"> ${esc(a.label)}</label>`).join('')}
       </div>
     </div>` : ''
   el.innerHTML = `
     <div class="rule-list" style="margin-bottom:12px">${rows}</div>
-    ${picked.length ? '' : '<div class="hint" style="margin-bottom:12px">Nothing to import – all selected rules are already up to date.</div>'}
+    ${picked.length ? '' : `<div class="hint" style="margin-bottom:12px">${t('set.js.nothing_to_import')}</div>`}
     ${accountPick}
     <div class="form-actions">
-      <button onclick="closeImport()">Cancel</button>
-      <button class="btn-primary" ${picked.length ? '' : 'disabled'} onclick="applyImport()">Import ${picked.length} rule${picked.length === 1 ? '' : 's'}</button>
+      <button onclick="closeImport()">${t('set.accounts.cancel')}</button>
+      <button class="btn-primary" ${picked.length ? '' : 'disabled'} onclick="applyImport()">${tn('set.js.import_n', picked.length)}</button>
     </div>`
 }
 
 async function applyImport() {
   const picked = importItems.filter(i => i.picked)
-  if (picked.some(i => i.status === 'new') && !importTags.length) return showToast('Choose at least one account for the new rules.', 'error')
+  if (picked.some(i => i.status === 'new') && !importTags.length) return showToast(t('set.js.choose_account_new'), 'error')
   const count = status => picked.filter(i => i.status === status).length
   try {
     rules = await invoke('apply_import', { json: document.getElementById('import-json').value, labels: picked.map(i => i.rule.label), tags: importTags })
-    showToast(`Rules imported: ${count('new')} new, ${count('update')} updated.`, 'success')
+    showToast(t('set.js.imported', { a: count('new'), b: count('update') }), 'success')
     closeImport()
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 // ================= Catalog =================
@@ -1355,13 +1399,13 @@ async function loadCatalog() {
   await reloadData().catch(() => {})
   if (!catalog) {
     const list = document.getElementById('catalog-list')
-    list.innerHTML = '<div class="empty-state">Loading catalog from GitHub…</div>'
+    list.innerHTML = `<div class="empty-state">${t('set.js.loading_catalog')}</div>`
     let loaded
     try { loaded = await invoke('get_catalog') }
     catch(e) { list.innerHTML = `<div class="empty-state">⚠ ${esc(e)}</div>`; return }
     catalog = loaded.catalog
     document.getElementById('cat-offline').innerHTML = loaded.offline_reason
-      ? `⚠ GitHub not reachable – showing the last downloaded catalog. <span class="dim">(${esc(loaded.offline_reason)})</span>` : ''
+      ? `⚠ ${t('set.js.catalog_offline')} <span class="dim">(${esc(loaded.offline_reason)})</span>` : ''
     const sel = document.getElementById('cat-lang')
     const preferred = (navigator.language || 'en').slice(0, 2)
     sel.innerHTML = catalog.languages.map(l => `<option value="${esc(l.id)}">${esc(l.name)}</option>`).join('')
@@ -1382,22 +1426,22 @@ function renderCatalog() {
       const kinds = [...new Set(variant.map(r => r.kind))].map(k => `<span class="kind-badge">${KIND_LABEL[k]}</span>`).join('')
       const added = variant.every(r => rules.some(e => sameRule(e, r)))
       const unverified = (a.unverified || []).includes(lang)
-        ? '<span class="unverified-badge" title="Not yet checked against a real mail – please test before relying on it">unverified</span>' : ''
+        ? `<span class="unverified-badge" title="${t('set.js.unverified_tip')}">${t('set.js.unverified')}</span>` : ''
       const key = `${cat.id}/${a.id}`
       const add = `addCatalogApp('${esc(cat.id)}','${esc(a.id)}'`
       const pick = catalogPick === key ? `
         <div class="cat-pick">
-          <span class="dim" style="font-size:12.5px">Check with:</span>
+          <span class="dim" style="font-size:12.5px">${t('set.js.check_with')}</span>
           ${accounts.map(acc => `<label><input type="checkbox" value="${esc(acc.tag)}" checked> ${esc(acc.label)}</label>`).join('')}
-          <button class="btn-primary btn-sm" onclick="${add}, [...this.parentElement.querySelectorAll('input:checked')].map(i => i.value))">Add</button>
+          <button class="btn-primary btn-sm" onclick="${add}, [...this.parentElement.querySelectorAll('input:checked')].map(i => i.value))">${t('set.js.add')}</button>
         </div>` : ''
       const buttons = added ? '<span class="added">✓ added</span>' : `
-        <button class="btn-primary btn-add" title="Add for all accounts" onclick="${add}, ['${ALL}'])">+</button>
-        ${accounts.length > 1 ? `<button class="btn-add-more" title="Choose accounts" onclick="toggleCatalogPick('${esc(key)}')">▾</button>` : ''}`
+        <button class="btn-primary btn-add" title="${t('set.js.add_all_accounts')}" onclick="${add}, ['${ALL}'])">+</button>
+        ${accounts.length > 1 ? `<button class="btn-add-more" title="${t('set.js.choose_accounts')}" onclick="toggleCatalogPick('${esc(key)}')">▾</button>` : ''}`
       return `<div class="cat-app"><span class="name">${esc(a.name)}</span>${unverified}${kinds}${buttons}${added ? '' : pick}</div>`
     }).join('')}</div>`
   }).join('')
-  document.getElementById('catalog-list').innerHTML = groups || '<div class="empty-state">No matching services.</div>'
+  document.getElementById('catalog-list').innerHTML = groups || `<div class="empty-state">${t('set.js.no_services')}</div>`
 }
 
 function toggleCatalogPick(key) {
@@ -1414,7 +1458,7 @@ function uniqueLabel(base) {
 }
 
 async function addCatalogApp(catId, appId, tags) {
-  if (!tags.length) return showToast('Choose at least one account.', 'error')
+  if (!tags.length) return showToast(t('set.js.choose_account'), 'error')
   const lang = document.getElementById('cat-lang').value
   const app = catalog.categories.find(c => c.id === catId).apps.find(a => a.id === appId)
   const langName = catalog.languages.find(l => l.id === lang).name
@@ -1427,7 +1471,7 @@ async function addCatalogApp(catId, appId, tags) {
     renderBadges()
     renderCatalog()
     showToast(`${app.name} added to Rules.`, 'success')
-  } catch(e) { showToast('Error: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 // ================= API =================
@@ -1445,15 +1489,15 @@ async function loadApi() {
     renderAllowedLinks()
     renderApiStatus(st.status)
     renderExample()
-  } catch(e) { showToast('Failed to load API settings: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.load_api_failed', { e }), 'error') }
 }
 
 function renderApiStatus(st) {
   if (!st) return
   document.getElementById('api-dot').className = 'badge dot ' + st.state
   const cls = { listening:'ok', error:'error', off:'' }[st.state] || ''
-  const title = { listening:'Running', error:'Error', off:'Off' }[st.state] || st.state
-  const last = st.last_request ? `Last request ${new Date(st.last_request * 1000).toLocaleString()}` : ''
+  const title = { listening: t('set.js.api_running'), error: t('set.js.st_error'), off: t('set.general.off') }[st.state] || st.state
+  const last = st.last_request ? t('set.js.last_request', { t: new Date(st.last_request * 1000).toLocaleString() }) : ''
   document.getElementById('api-status').innerHTML =
     `<div class="status ${cls}"><span class="dot ${st.state}"></span><span class="msg"><b>${title}:</b> ${esc(st.message)}</span><span class="when">${last}</span></div>`
 }
@@ -1462,7 +1506,7 @@ function renderAllowedLinks() {
   document.getElementById('api-links').innerHTML = allowedLinks.map((l, i) => `
     <div class="link-row">
       <input class="mono" value="${esc(l)}" placeholder="https://claude.ai/magic-link" oninput="allowedLinks[${i}]=this.value">
-      <button class="btn-danger btn-xs" title="Remove" onclick="allowedLinks.splice(${i},1);renderAllowedLinks()">✕</button>
+      <button class="btn-danger btn-xs" title="${t('set.js.remove')}" onclick="allowedLinks.splice(${i},1);renderAllowedLinks()">✕</button>
     </div>`).join('')
 }
 
@@ -1482,25 +1526,25 @@ async function saveApi() {
   try {
     await invoke('set_api_settings', { api })
     await loadApi()
-    showToast('API settings saved.', 'success')
-  } catch(e) { showToast('Error: ' + e, 'error') }
+    showToast(t('set.js.api_saved'), 'success')
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 async function regenerateToken() {
-  if (!confirm('Generate a new token? Scripts using the old token stop working.')) return
+  if (!confirm(t('set.js.confirm_token'))) return
   try {
     apiToken = await invoke('regenerate_api_token')
     document.getElementById('api-token').value = apiToken
     renderExample()
-    showToast('New token generated.', 'success')
-  } catch(e) { showToast('Error: ' + e, 'error') }
+    showToast(t('set.js.token_new'), 'success')
+  } catch(e) { showToast(t('set.js.error', { e }), 'error') }
 }
 
 function toggleToken() {
   const input = document.getElementById('api-token'), btn = document.getElementById('api-token-show')
   const show = input.type === 'password'
   input.type = show ? 'text' : 'password'
-  btn.textContent = show ? 'Hide' : 'Show'
+  btn.textContent = show ? t('set.js.hide') : t('set.api.show')
 }
 
 function renderExample() {
@@ -1541,10 +1585,10 @@ async function loadLog() {
     const [entries] = await Promise.all([invoke('get_log'), reloadData()])
     logEntries = entries.reverse()
     const sel = document.getElementById('log-account'), cur = sel.value
-    sel.innerHTML = '<option value="">All accounts</option>' + accounts.map(a => `<option value="${esc(a.id)}">${esc(a.label)}</option>`).join('')
+    sel.innerHTML = `<option value="">${t('set.js.all_accounts')}</option>` + accounts.map(a => `<option value="${esc(a.id)}">${esc(a.label)}</option>`).join('')
     sel.value = cur
     renderLog()
-  } catch(e) { showToast('Failed to load log: ' + e, 'error') }
+  } catch(e) { showToast(t('set.js.load_log_failed', { e }), 'error') }
 }
 
 function onLogEntry(entry) {
@@ -1571,9 +1615,9 @@ const maskCode = c => c.length <= 3 ? '•••' : c[0] + '•••' + c.slice
 const fmtTime = ms => new Date(ms).toLocaleTimeString()
 
 function valueHtml(e) {
-  if (e.kind === 'link') return `Link <code class="mono">${esc(e.value)}</code>`
+  if (e.kind === 'link') return `${t('set.js.link')} <code class="mono">${esc(e.value)}</code>`
   const shown = revealed.has(e.seq) ? e.value : maskCode(e.value)
-  return `Code <span class="masked" title="Click to reveal" onclick="event.stopPropagation();revealCode(${e.seq})">${esc(shown)}</span>`
+  return `${t('set.js.code')} <span class="masked" title="${t('set.js.click_reveal')}" onclick="event.stopPropagation();revealCode(${e.seq})">${esc(shown)}</span>`
 }
 
 function revealCode(seq) {
@@ -1588,14 +1632,14 @@ function decisive(e) {
 }
 
 function resultText(e) {
-  const t = decisive(e)
+  const d = decisive(e)
   switch (e.outcome) {
-    case 'found': return `→ ${valueHtml(e)} · rule „${esc(t.rule)}“`
+    case 'found': return `→ ${valueHtml(e)} · ${t('set.js.log_rule', { name: esc(d.rule) })}`
     case 'partial': {
-      const f = t.stages.find(s => !s.ok)
-      return `→ rule „${esc(t.rule)}“: headers match, ${f ? `${esc(STAGE_LABEL[f.stage])} ${esc(f.detail)}` : 'body not loaded'}`
+      const f = d.stages.find(s => !s.ok)
+      return `→ ${t('set.js.log_partial', { name: esc(d.rule), why: f ? `${esc(STAGE_LABEL[f.stage])} ${esc(f.detail)}` : t('set.js.body_not_loaded') })}`
     }
-    default: return e.traces.length ? '→ no rule matches' : '→ no active rules'
+    default: return e.traces.length ? `→ ${t('set.js.no_rule_matches')}` : `→ ${t('set.js.no_active_rules')}`
   }
 }
 
@@ -1607,7 +1651,7 @@ function logMatches(e, q) {
 
 function renderLogPaused() {
   const el = document.getElementById('log-paused')
-  if (el) el.textContent = `Paused – ${logPending.length} new entr${logPending.length === 1 ? 'y' : 'ies'}`
+  if (el) el.textContent = tn('set.js.paused_n', logPending.length)
 }
 
 function renderLog() {
@@ -1618,7 +1662,7 @@ function renderLog() {
   const paused = logPaused ? '<div class="log-paused" id="log-paused"></div>' : ''
   document.getElementById('log-list').innerHTML = paused + (rows.length
     ? rows.map(e => e.type === 'mail' ? mailRow(e) : eventRow(e)).join('')
-    : `<div class="empty-state" style="border:none">${view === 'mail' ? 'No mails checked yet.' : 'No connection events yet.'}</div>`)
+    : `<div class="empty-state" style="border:none">${view === 'mail' ? t('set.js.no_mails_checked') : t('set.js.no_events')}</div>`)
   renderLogPaused()
 }
 
@@ -1646,16 +1690,16 @@ function mailDetail(e) {
   const relevant = e.traces.filter(t => t.stages.length > 1 || t.stages[0]?.ok)
   const hidden = e.traces.length - relevant.length
   const traces = relevant.map(t => `<div class="trace"><div class="name">${esc(t.rule)}</div>${traceStages(t)}</div>`).join('')
-  const t = e.timings
+  const tm = e.timings
   const rule = decisive(e)
   return `<div class="log-detail" onclick="event.stopPropagation()">
     ${traces}
-    ${hidden ? `<div class="trace-more">${hidden} rule${hidden === 1 ? '' : 's'} with another sender not shown.</div>` : ''}
-    <div class="hint">After the server reported the mail: headers ${t.headers} ms${t.body != null ? ` · body ${t.body} ms` : ''} · done ${t.done} ms</div>
+    ${hidden ? `<div class="trace-more">${tn('set.js.hidden_rules', hidden)}</div>` : ''}
+    <div class="hint">${t('set.js.timings', { h: tm.headers, b: tm.body != null ? t('set.js.timings_body', { b: tm.body }) : '', d: tm.done })}</div>
     <div class="log-actions">
-      ${rule && rule.rule_id ? `<button class="btn-sm" onclick="openRule('${esc(rule.rule_id)}')">Edit rule</button>` : ''}
-      <button class="btn-sm" onclick="newRuleFromLog(${e.seq})">New rule from this mail</button>
-      <button class="btn-sm" onclick="copyLogEntry(${e.seq})">Copy</button>
+      ${rule && rule.rule_id ? `<button class="btn-sm" onclick="openRule('${esc(rule.rule_id)}')">${t('set.js.edit_rule')}</button>` : ''}
+      <button class="btn-sm" onclick="newRuleFromLog(${e.seq})">${t('set.js.new_rule_from_mail')}</button>
+      <button class="btn-sm" onclick="copyLogEntry(${e.seq})">${t('set.api.copy')}</button>
     </div>
   </div>`
 }
@@ -1664,9 +1708,9 @@ function newRuleFromLog(seq) {
   const e = logEntries.find(x => x.seq === seq)
   const domain = (e.from || '').split('@')[1]
   const tag = accounts.find(a => a.id === e.account_id)?.tag
-  const rule = { ...newRule('code', tag ? [tag] : [ALL]), label: domain || 'New rule', sender: domain ? `*@${domain}` : '', subject: e.subject || '' }
+  const rule = { ...newRule('code', tag ? [tag] : [ALL]), label: domain || t('set.rules.new_rule_2'), sender: domain ? `*@${domain}` : '', subject: e.subject || '' }
   openRule(null, { rule, sample: { from: e.from || '', subject: e.subject || '', body: '' } })
-  showToast('Mark the code in the subject with {code}, or describe it in the body.', 'success')
+  showToast(t('set.js.mark_code_hint'), 'success')
 }
 
 function copyLogEntry(seq) {
@@ -1678,7 +1722,7 @@ function copyLogEntry(seq) {
     ...e.traces.map(t => `Rule "${t.rule}": ` + t.stages.map(s => `${s.ok ? '✓' : '✗'} ${s.stage} ${s.detail}`).join('; ')),
     `Timings: headers ${e.timings.headers} ms, body ${e.timings.body ?? '–'} ms, done ${e.timings.done} ms`,
   ]
-  copyText(lines.join('\n'), 'Entry copied')
+  copyText(lines.join('\n'), t('set.js.entry_copied_log'))
 }
 
 // ================= Startup =================
@@ -1702,31 +1746,54 @@ document.addEventListener('keyup', ev => {
   if (!editing) invoke('hide_window').catch(() => {})
 })
 
-go('general')
-invoke('get_accounts').then(a => { if (!a.length) go('accounts') }).catch(() => {})
-setupListeners()
-invoke('get_api_settings').then(st => renderApiStatus(st.status)).catch(() => {})
+i18nReady.then(() => {
+  go('general')
+  invoke('get_accounts').then(a => { if (!a.length) go('accounts') }).catch(() => {})
+  setupListeners()
+  invoke('get_api_settings').then(st => renderApiStatus(st.status)).catch(() => {})
+})
 
 // ---- General & Notifications ----
 let pendingShortcut = null
 async function loadPreferences() {
   const i18n = await invoke('get_i18n')
-  document.getElementById('lang-select').innerHTML = i18n.languages.map(l => `<option value="${l.code}" ${l.code === i18n.language ? 'selected' : ''}>${esc(l.name)}</option>`).join('')
+  document.getElementById('lang-seg').innerHTML = i18n.languages.map(l => `<button class="${l.code === i18n.language ? 'on' : ''}" aria-pressed="${l.code === i18n.language}" onclick="pickLanguage('${l.code}')">${esc(l.name)}</button>`).join('')
   const st = await invoke('get_app_status')
   document.getElementById('nt-enabled').checked = st.notifications
   document.getElementById('nt-people').checked = st.tray_people_only
   showShortcut(st.shortcut)
   document.getElementById('inbox-days').value = st.inbox_days || 7
+  showWindowForm(st.window_form || 'popup', st.sidebar_side || 'auto')
+}
+let winForm = 'popup', winSide = 'auto'
+function markSeg(id, value) {
+  document.querySelectorAll(`#${id} button`).forEach(b => { b.classList.toggle('on', b.dataset.v === value); b.setAttribute('aria-pressed', b.dataset.v === value) })
+}
+function showWindowForm(form, side) {
+  winForm = form; winSide = side
+  markSeg('win-form', form); markSeg('win-side', side)
+  document.getElementById('win-side-row').hidden = form !== 'sidebar'
+  document.getElementById('win-hint').textContent = (form === 'sidebar'
+    ? t('set.js.win_sidebar_hint')
+    : t('set.js.win_popup_hint')) + ' ' + t('set.js.win_both')
+}
+async function saveWindowForm(form, side) {
+  showWindowForm(form || winForm, side || winSide)
+  try { await invoke('set_window_form', { form: winForm, side: winSide }) } catch (e) { showToast(String(e), 'error') }
+}
+async function pickLanguage(code) {
+  document.querySelectorAll('#lang-seg button').forEach(b => b.classList.toggle('on', b.getAttribute('onclick').includes(`'${code}'`)))
+  await setLanguage(code)
 }
 // ---- Actions: Schnellaktionen und Kategorien ----
 const ACTION_INFO = {
-  archive: ['Done', 'Moves the mail to the archive', 'E'],
-  task: ['Task', 'Moves the mail to the folder “Tasks”', 'T'],
-  file: ['File', 'Moves the mail into a category (below)', 'F'],
-  delete: ['Delete', 'Moves the mail to the trash', 'Del'],
-  pin: ['Pin', 'Star on the server, stays on top', 'P'],
-  read: ['Read / unread', 'The mail stays in the inbox', 'U'],
-  noise: ['Noise / person', 'Teaches Maillet which senders are newsletters', 'N'],
+  get archive() { return [t('set.js.a_done'), t('set.js.a_done_hint'), 'E'] },
+  get task() { return [t('set.js.a_task'), t('set.js.a_task_hint'), 'T'] },
+  get file() { return [t('set.js.a_file'), t('set.js.a_file_hint'), 'F'] },
+  get delete() { return [t('set.js.delete'), t('set.js.a_delete_hint'), t('set.js.key_del')] },
+  get pin() { return [t('set.js.a_pin'), t('set.js.a_pin_hint'), 'P'] },
+  get read() { return [t('set.js.a_read'), t('set.js.a_read_hint'), 'U'] },
+  get noise() { return [t('set.js.a_noise'), t('set.js.a_noise_hint'), 'N'] },
 }
 const EXIT_ACTIONS = ['archive', 'task', 'file', 'delete'], MARK_ACTIONS = ['pin', 'read', 'noise']
 const ICON = {
@@ -1760,10 +1827,10 @@ function renderActionLists() {
     const i = list.indexOf(a)
     const fixed = a === 'archive'
     return `<div class="act-row ${actOn.has(a) ? '' : 'off'}">
-      <label class="check"><input type="checkbox" ${actOn.has(a) ? 'checked' : ''} onchange="toggleAction('${a}', this.checked)"> ${svg(a)} <b>${esc(name)}</b> <span class="hint">– ${esc(fixed ? hint + ', always in the top-right corner' : hint)}</span></label>
+      <label class="check"><input type="checkbox" ${actOn.has(a) ? 'checked' : ''} onchange="toggleAction('${a}', this.checked)"> ${svg(a)} <b>${esc(name)}</b> <span class="hint">– ${esc(fixed ? t('set.js.a_fixed_hint', { hint }) : hint)}</span></label>
       <span class="kbd">${key}</span>
-      ${fixed ? '<span class="fixed-pos" title="Fixed position">📌</span>' : `<button class="btn-sm" title="Move up" ${i === 0 ? 'disabled' : ''} onclick="moveAction('${a}', -1)">↑</button>
-      <button class="btn-sm" title="Move down" ${i === list.length - 1 ? 'disabled' : ''} onclick="moveAction('${a}', 1)">↓</button>`}
+      ${fixed ? `<span class="fixed-pos" title="${t('set.js.fixed_pos')}">📌</span>` : `<button class="btn-sm" title="${t('set.js.move_up')}" ${i === 0 ? 'disabled' : ''} onclick="moveAction('${a}', -1)">↑</button>
+      <button class="btn-sm" title="${t('set.js.move_down')}" ${i === list.length - 1 ? 'disabled' : ''} onclick="moveAction('${a}', 1)">↓</button>`}
     </div>`
   }
   // Oben nach unten = in der Leiste links nach rechts; Done steht fest am Ende.
@@ -1784,7 +1851,7 @@ function moveAction(a, dir) {
   renderActionLists(); renderPreview(); saveActions()
 }
 async function setMarkReadOnOpen(on) {
-  try { await invoke('set_mark_read_on_open', { on }); showToast(on ? 'Opening a mail marks it as read' : 'Mails stay unread until you decide', 'success') } catch (e) { showToast(String(e), 'error') }
+  try { await invoke('set_mark_read_on_open', { on }); showToast(on ? t('set.actions.opening_a_mail_marks') : t('set.js.stay_unread'), 'success') } catch (e) { showToast(String(e), 'error') }
 }
 async function saveActions() {
   const actions = actOrder.filter(a => actOn.has(a))
@@ -1801,9 +1868,9 @@ function renderPreview() {
   const more = others.length > room || marks.length > 3
   const hBtn = a => `<span class="pv-b ${a === 'archive' ? 'main' : ''}">${svg(a)}</span>`
   document.getElementById('act-preview').innerHTML = `<div class="pv-card">
-    <div class="pv-head"><span class="pv-av">JW</span><div><b>Jana Wolff</b><small>Work · 14:40</small></div></div>
-    <div class="pv-subj">Atlas: review of the specification</div>
-    <div class="pv-prev">Could you look through it by Friday?</div>
+    <div class="pv-head"><span class="pv-av">JW</span><div><b>Jana Wolff</b><small>${t('set.js.pv_meta')}</small></div></div>
+    <div class="pv-subj">${t('set.js.pv_subj')}</div>
+    <div class="pv-prev">${t('set.js.pv_prev')}</div>
     ${exits.length || more ? `<div class="pv-h ${marks.length ? 'over' : ''}">${more ? `<span class="pv-b">${svg('more')}</span>` : ''}${exits.map(hBtn).join('')}</div>` : ''}
     ${marks.length ? `<div class="pv-v ${exits.length || more ? 'under' : ''}">${marks.slice(0, 3).map(a => `<span class="pv-b">${svg(a)}</span>`).join('')}</div>` : ''}
   </div>`
@@ -1811,13 +1878,13 @@ function renderPreview() {
 function renderCategories() {
   document.getElementById('cat-list').innerHTML = categories.map((c, i) => `<div class="cat-row">
     <span class="kbd">${i < 9 ? i + 1 : ''}</span>
-    <input type="color" value="${esc(c.color)}" title="Colour" onchange="editCategory(${i}, 'color', this.value, true)">
-    <input class="cat-name" value="${esc(c.name)}" placeholder="Name" oninput="editCategory(${i}, 'name', this.value)">
-    <input class="cat-folder" value="${esc(c.folder)}" placeholder="Folder (default: the name)" list="folder-names" oninput="editCategory(${i}, 'folder', this.value)">
-    <button class="btn-sm" title="Move up" ${i === 0 ? 'disabled' : ''} onclick="moveCategory(${i}, -1)">↑</button>
-    <button class="btn-sm" title="Move down" ${i === categories.length - 1 ? 'disabled' : ''} onclick="moveCategory(${i}, 1)">↓</button>
-    <button class="btn-sm" title="Remove (the folder and its mails stay on the server)" onclick="removeCategory(${i})">✕</button>
-  </div>`).join('') || '<div class="hint">No categories – “File” has no targets.</div>'
+    <input type="color" value="${esc(c.color)}" title="${t('set.js.colour')}" onchange="editCategory(${i}, 'color', this.value, true)">
+    <input class="cat-name" value="${esc(c.name)}" placeholder="${t('set.js.name')}" oninput="editCategory(${i}, 'name', this.value)">
+    <input class="cat-folder" value="${esc(c.folder)}" placeholder="${t('set.js.folder_ph')}" list="folder-names" oninput="editCategory(${i}, 'folder', this.value)">
+    <button class="btn-sm" title="${t('set.js.move_up')}" ${i === 0 ? 'disabled' : ''} onclick="moveCategory(${i}, -1)">↑</button>
+    <button class="btn-sm" title="${t('set.js.move_down')}" ${i === categories.length - 1 ? 'disabled' : ''} onclick="moveCategory(${i}, 1)">↓</button>
+    <button class="btn-sm" title="${t('set.js.remove_cat')}" onclick="removeCategory(${i})">✕</button>
+  </div>`).join('') || `<div class="hint">${t('set.js.no_categories')}</div>`
 }
 function editCategory(i, field, value, now) {
   // Ordner folgt dem Namen, solange der Nutzer keinen eigenen eingetragen hat.
@@ -1850,17 +1917,17 @@ async function saveCategories() {
 }
 async function saveInboxDays() {
   const days = parseInt(document.getElementById('inbox-days').value, 10)
-  if (!(days >= 1 && days <= 365)) { showToast('Enter 1 to 365 days', 'error'); return }
-  try { await invoke('set_inbox_days', { days }); showToast(`Inbox shows the last ${days} days`, 'success') } catch (e) { showToast(String(e), 'error') }
+  if (!(days >= 1 && days <= 365)) { showToast(t('set.js.days_range'), 'error'); return }
+  try { await invoke('set_inbox_days', { days }); showToast(t('set.js.days_saved', { n: days }), 'success') } catch (e) { showToast(String(e), 'error') }
 }
 function showShortcut(sc) {
   pendingShortcut = null
   const input = document.getElementById('sc-input')
   input.value = sc.keys || ''
-  input.placeholder = sc.keys ? 'Click, then press keys …' : 'Off – click to record a shortcut'
-  document.getElementById('sc-status').innerHTML = !sc.keys ? 'No global shortcut.'
-    : sc.error ? `<span class="sc-err">Not available: ${esc(sc.error)}</span> – another program may use it, try a different one.`
-    : `<span class="sc-ok">Active.</span>`
+  input.placeholder = sc.keys ? t('set.general.click_then_press_keys') : t('set.js.sc_off_ph')
+  document.getElementById('sc-status').innerHTML = !sc.keys ? t('set.js.sc_none')
+    : sc.error ? `<span class="sc-err">${t('set.js.sc_na', { e: esc(sc.error) })}</span> – ${t('set.js.sc_na_hint')}`
+    : `<span class="sc-ok">${t('set.js.sc_active')}</span>`
 }
 function comboFrom(e) {
   const mods = []
@@ -1880,7 +1947,7 @@ function onShortcutKey(e) {
   if (e.key === 'Backspace' && !e.ctrlKey && !e.altKey && !e.metaKey) { input.value = ''; pendingShortcut = ''; return }
   const c = comboFrom(e)
   if (c.partial !== undefined) { input.value = c.partial ? c.partial + '+ …' : ''; return }
-  if (!c.mods.length && !/^F\d+$/.test(c.key)) { input.value = 'Use Ctrl, Alt or Super with the key'; return }
+  if (!c.mods.length && !/^F\d+$/.test(c.key)) { input.value = t('set.js.sc_need_mod'); return }
   pendingShortcut = [...c.mods, c.key].join('+')
   input.value = pendingShortcut
 }
@@ -1896,21 +1963,21 @@ function stopRecording() {
 }
 async function saveShortcut(keys) {
   const value = keys !== undefined ? keys : pendingShortcut
-  if (value === null || value === undefined) { showToast('Press the keys first', 'error'); return }
+  if (value === null || value === undefined) { showToast(t('set.js.sc_press_first'), 'error'); return }
   try {
     const st = await invoke('set_shortcut', { keys: value })
     showShortcut(st)
-    showToast(value ? (st.error ? 'Saved, but not available' : `Shortcut ${value} active`) : 'Shortcut switched off', st.error ? 'error' : 'success')
+    showToast(value ? (st.error ? t('set.js.sc_saved_na') : t('set.js.sc_on', { keys: value })) : t('set.js.sc_switched_off'), st.error ? 'error' : 'success')
   } catch (e) { showToast(String(e), 'error') }
 }
 async function setLanguage(code) {
-  try { await invoke('set_language', { code }); showToast('Language changed', 'success') } catch (e) { showToast(String(e), 'error') }
+  try { await invoke('set_language', { code }); location.reload() } catch (e) { showToast(String(e), 'error') }
 }
 async function setNotifications(on) {
-  try { await invoke('set_notifications', { enabled: on }); showToast(on ? 'Notifications on' : 'Notifications off', 'success') } catch (e) { showToast(String(e), 'error') }
+  try { await invoke('set_notifications', { enabled: on }); showToast(on ? t('set.js.nt_on') : t('set.js.nt_off'), 'success') } catch (e) { showToast(String(e), 'error') }
 }
 async function setTrayPeople(on) {
-  try { await invoke('set_tray_people_only', { enabled: on }); showToast(on ? 'Tray counts only people' : 'Tray counts all unread mails', 'success') } catch (e) { showToast(String(e), 'error') }
+  try { await invoke('set_tray_people_only', { enabled: on }); showToast(on ? t('set.js.tray_people') : t('set.js.tray_all'), 'success') } catch (e) { showToast(String(e), 'error') }
 }
 </script>
 <script type="module">

@@ -31,7 +31,7 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
     tauri_plugin_global_shortcut::Builder::new()
         .with_handler(|app, _shortcut, event| {
             if event.state() == ShortcutState::Pressed {
-                windows::toggle_sidebar(app.app_handle());
+                windows::toggle_main_by_key(app.app_handle());
             }
         })
         .build()
