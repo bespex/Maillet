@@ -17,13 +17,7 @@ Maillet ist ein Fork von [OTP Scout](https://github.com/Skrrytch/OTP-Scout) und 
 
 Die OTP-spezifischen Teile (Regeln, Katalog, lokale API) bleiben vorerst erhalten, werden aber nicht mehr zentral. Ob sie ganz entfallen oder als optionales Modul weiterleben, ist offen.
 
-## Geplante Schritte
-
-- [ ] Mailbetrachter: Ordnerliste und Mailliste pro Konto, Lesen der Mail-Texte (Text und sicher gerenderte HTML-Ansicht)
-- [ ] Mail-Cache und Synchronisation (Entscheidung: nur Metadaten oder vollständige Mails)
-- [ ] Tray-Menü mit ungelesenen Mails pro Konto
-- [ ] Benachrichtigungen konfigurierbar (Absender, Ordner, Ruhezeiten)
-- [ ] Umbenennung der Icons und des Pakets endgültig (Icon ist noch das OTP-Scout-Icon)
+Was noch kommen soll, steht in [PLAN.md](PLAN.md).
 
 ## Hinweis zum Regelkatalog
 

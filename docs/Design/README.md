@@ -6,7 +6,7 @@ Ein klickbarer Entwurf für die Bedienung von Maillet. Er zeigt, wie sich die Ap
 
 **Dazu gehören:**
 - [Bedienkonzept.md](Bedienkonzept.md) – Grundhaltung, mentales Modell, Ebenen, Interaktionsmuster, Gestaltung
-- [Funktionen.md](Funktionen.md) – Ideen-Pool mit Nutzen, Kern, Erweiterungen und Priorisierung
+- [Funktionen.md](Funktionen.md) – Ideen-Pool mit Nutzen, Kern und Erweiterungen (was kommt: ../../PLAN.md)
 
 ## Leitidee
 

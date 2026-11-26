@@ -1,6 +1,8 @@
 # Maillet – Funktionen und Ideen-Pool
 
-Dieses Dokument sammelt die Funktionen, die bei der täglichen Mailarbeit helfen. Jede Funktion beginnt beim **Problem** aus dem Alltag, beschreibt den **Nutzen**, den **Kern** und mögliche **Erweiterungen**. Am Ende steht eine Priorisierung.
+> **Stand 2026-11-26:** Beschreibung der Ideen zum Click-Dummy (Problem, Nutzen, Kern, Erweiterungen). Ob und wann eine Idee kommt, steht in [../../PLAN.md](../../PLAN.md); die Kennzeichnung 🟢 🟡 🔵 unten ist die ursprüngliche Einordnung, nicht der Stand der App.
+
+Dieses Dokument sammelt die Funktionen, die bei der täglichen Mailarbeit helfen. Jede Funktion beginnt beim **Problem** aus dem Alltag, beschreibt den **Nutzen**, den **Kern** und mögliche **Erweiterungen**.
 
 Die Bedienregeln, denen alle Funktionen folgen, beschreibt [Bedienkonzept.md](Bedienkonzept.md).
 
@@ -719,51 +721,3 @@ Pflicht, sobald es irgendeine KI-Funktion gibt.
 | **Datenumfang** | je Prompt: nur Betreff, Betreff + Anfang, ganze Mail |
 | **Kosten und Last** | Auswertung bevorzugt im Leerlauf, Ergebnisse zwischengespeichert, Tageslimit bei API-Modellen |
 | **Ein Schalter** | Hauptschalter schaltet alles sofort ab |
-
----
-
-## Priorisierung
-
-### Phase 1 – Kern (MVP)
-
-Ziel: Der Eingang wird zur Durchgangsstation.
-
-| Funktion | Nutzen | Aufwand |
-|---|---|---|
-| A1 Gruppen | hoch | M |
-| A2 Regeln (Kern, entstehen beim Zuordnen) | hoch | M |
-| A3 Themen-Vorschläge | mittel | S |
-| A7 Codes (aus OTP Scout) | hoch | S |
-| B1 Aufgabe (Kern, Frist erkannt, Kanban) | hoch | M |
-| B2 Wissen (Kern, Erkannt-Chips, Markieren) | hoch | M |
-| B9 Anpinnen, B10 Später inkl. „wenn keine Antwort“ | hoch | S |
-| C Ablage (Ablegen, Ordner, Suche, Kopie/Verschieben) | hoch | M |
-| D1 Themen als Arbeitsraum | hoch | M |
-| E1 Lautstärken, E2 Fokus, E5 Benachrichtigungs-Aktionen | hoch | S |
-| F1 Eine Suche | hoch | M |
-| G Triage, Bilanz, Bewegung | mittel | S |
-| I1 Board mit festen Plätzen (Fluss und Bestand getrennt) | hoch | S |
-
-### Phase 2 – Entlastung
-
-Ziel: Weniger Klicks, weniger vergessen.
-
-A4 Bündel · A5 Konversationen · A6 Newsletter-Zentrale · A8 Verfallende Anzeigen · B1 Teilaufgaben, Warte-auf mit Antwort-Erkennung, Nachfassen · B2 Wissen im Kontext, Ablaufdatum · B3 Termin · B5 Delegieren · B6 Schnellantworten · B11 Antwortschuld · C Ablage-Regeln, Anhänge daneben, Import · E3 Morgen-Briefing · E4 Tagesabschluss · E6 Rückkehr nach Abwesenheit · I2 Zustandskarten · I3 Smart-Karten · I4 Spickzettel · **J1 Prompt-Bibliothek, J2 Radar, J3 Bewertung, J4 Kurzfassungen, J5 Erkennung, J9 Kontrolle** (lokales Modell)
-
-### Phase 3 – Vision
-
-Ziel: Maillet als ruhiges Zentrum der Kommunikationsarbeit.
-
-B4 Kontakte · B8 Anhang-Versionen · C verschlüsselte Ablage, Themen-Paket · D Zeitleiste, Übergabe · D2 Vor dem Termin · F semantische Suche · H CalDAV, Kommandozeile, Plugins · I Board je Thema · J6 KI als Regelbedingung · J7 Frag deine Mails · J8 Schreibhilfe
-
----
-
-## Offene Fragen
-
-1. **Firmenkonten:** Soll *Kopie* statt *Verschieben* der Standard beim Ablegen sein, um Aufbewahrungsregeln nicht zu verletzen?
-2. **Aufgaben-Speicher:** Eigene lokale Datenbank, oder von Anfang an CalDAV-kompatibel?
-3. **Wissen-Speicher:** Eigene Datenbank mit Export, oder direkt Markdown-Dateien als Quelle?
-4. **Ein Thema pro Mail:** Reicht das im Alltag, oder braucht es eine zweite Ebene?
-5. **Antworten:** Wie viel Editor soll Maillet haben, bevor es an einen vollwertigen Client übergibt?
-6. **KI-Modell:** Welches lokale Modell ist der Standard, und ab welcher Rechnerleistung? Gibt es einen Fallback für schwache Rechner (nur Muster, keine KI)?
-7. **Zustandskarten:** Sollen Zustandsmails auf dem Server automatisch archiviert werden, oder nur in Maillet aus dem Fluss verschwinden?

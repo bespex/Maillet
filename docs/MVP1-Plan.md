@@ -1,5 +1,7 @@
 # MVP 1 – kurzer Plan
 
+> **Status:** umgesetzt (Version 0.5.0 und folgende). Nur noch zur Nachvollziehbarkeit; was kommt, steht in [../PLAN.md](../PLAN.md).
+
 **Ziel:** Maillet prüft Postfächer, zeigt die Zahl neuer Mails im Tray und öffnet per Klick ein Fenster mit den neuen Mails im Design des Click-Dummys. Die OTP-Erkennung bleibt, ist aber nur noch eine Funktion unter vielen. Basis sind die [Design-Unterlagen](Design/README.md) und der [Click-Dummy](Design/index.html) – iterativ, ohne fertiges Konzept.
 
 ---

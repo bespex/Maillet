@@ -1,5 +1,7 @@
 # Maillet – Design-Konzept
 
+> **Stand 2026-11-26:** das ursprüngliche Design-Konzept. Gebaut ist, was README und `docs/` beschreiben; was noch kommen soll, steht in [PLAN.md](PLAN.md). Abschnitt 5.9 (Themes) beschreibt den aktuellen Stand.
+
 Maillet überwacht Postfächer und zeigt Mails so, wie man sie wirklich braucht: als fokussierte Karten statt endloser Listen. Es sitzt im System-Tray, meldet sich nur, wenn es etwas zu tun gibt, und läuft auf GNOME, KDE, Cinnamon, XFCE und anderen Desktops.
 
 Ziel: **einfach und schlicht, aber effektiv.** Jedes Element muss eine Frage beantworten: *Was muss ich jetzt tun?*
@@ -272,32 +274,3 @@ Das ist ein Kernversprechen, nicht Beiwerk.
 | Verbindung weg | Gedämpfte Statuszeile, kein Alarm |
 | Fehler | Karte mit Lösungsvorschlag, nie nur ein Fehlercode |
 | Laden | Skeleton-Karten statt Spinner |
-
----
-
-## 10. Phasen
-
-**Phase 1 – Kern (MVP)**
-- Tray, Popup, Konten-Karten, Stapel-Ansicht, Archiv, Suche
-- OTP-Schnellzugriff (übernommen aus OTP Scout)
-- Tastatur-Modus, Hell/Dunkel
-
-**Phase 2 – Intelligenz**
-- Gruppen mit Regeln und Heuristik, Korrektur-Lernen
-- Snooze, Fokus-Modus, Zeitpläne
-- Benachrichtigungs-Aktionen
-
-**Phase 3 – Feinschliff**
-- Sprint-Triage mit Auswertung
-- Akzentfarben, Themes, Offline-Lesen
-- Flatpak, AppImage, `.rpm`; Windows- und macOS-Builds
-
----
-
-## 11. Offene Fragen
-
-1. **Mailtext offline speichern:** standardmäßig aus oder an? (Empfehlung: aus, Einstellung vorhanden)
-2. **Antworten:** nur Verweis auf den Mail-Client, oder eigener Editor? (Empfehlung: Phase 1 einfacher Editor, Antwort als Entwurf auf dem Server)
-3. **Gruppen-Start:** Heuristik ab Tag 1, oder erst nach Korrekturen? (Empfehlung: Heuristik mit sichtbarer Erklärung „Warum hier?“)
-4. **Technik final:** Tauri 2 (Empfehlung) oder Qt 6?
-5. **OTP-Scout:** als Modul in Maillet weiterführen oder als eigenes Produkt pflegen?
